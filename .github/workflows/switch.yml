@@ -16,6 +16,7 @@ jobs:
       run: make PLATFORM=Switch clean
       working-directory: Oxygen/soncthrickles/build/_make
     - name: make 
+      continue-on-error: true
       run: make PLATFORM=Switch
       working-directory: Oxygen/soncthrickles/build/_make
     - name: Create directory structure
