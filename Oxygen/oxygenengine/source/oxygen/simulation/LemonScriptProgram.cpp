@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -119,6 +119,13 @@ void LemonScriptProgram::startup()
 	//  -> TODO: This has some dependency of the runtime, as the register variables directly access the emulator interface instance;
 	//           and this in turn is the reason why there's a need for this separate startup function at all...
 	mInternal.mLemonScriptBindings.registerBindings(mInternal.mCoreModule);
+
+	// Optionally dump the core module script bindings into a generated script file for reference
+	Configuration& config = Configuration::instance();
+	if (!config.mDumpCppDefinitionsOutput.empty())
+	{
+		mInternal.mCoreModule.dumpDefinitionsToScriptFile(config.mDumpCppDefinitionsOutput);
+	}
 }
 
 LemonScriptBindings& LemonScriptProgram::getLemonScriptBindings()
@@ -150,17 +157,28 @@ bool LemonScriptProgram::loadScriptModule(lemon::Module& module, lemon::GlobalsL
 		const bool compileSuccess = compiler.loadScript(filename);
 		if (!compileSuccess && !compiler.getErrors().empty())
 		{
-			for (const auto& error : compiler.getErrors())
+			for (const lemon::Compiler::ErrorMessage& error : compiler.getErrors())
 			{
-				LogDisplay::instance().addLogError(String(0, "Compile error: %s (in '%s', line %d)", error.mMessage.c_str(), *WString(error.mFilename).toString(), error.mLineNumber));
+				LogDisplay::instance().addLogError(String(0, "Compile error: %s (in '%s', line %d)", error.mMessage.c_str(), *WString(error.mFilename).toString(), error.mError.mLineNumber));
 			}
 
-			const auto& error = compiler.getErrors().front();
-			std::string text = "Script compile error:\n" + error.mMessage + "\n";
+			const lemon::Compiler::ErrorMessage& error = compiler.getErrors().front();
+			std::string text = error.mMessage + ".";	// Because error messages usually don't end with a dot
+			switch (error.mError.mCode)
+			{
+				case lemon::CompilerError::Code::SCRIPT_FEATURE_LEVEL_TOO_HIGH:
+				{
+					text += " It's possible the module requires a newer game version.";
+					break;
+				}
+				default:
+					break;
+			}
+			text = "Script compile error:\n" + text + "\n\n";
 			if (error.mFilename.empty())
-				text += "in module " + module.getModuleName();
+				text += "Caused in module " + module.getModuleName() + ".";
 			else
-				text += "in file '" + WString(error.mFilename).toStdString() + "', line " + std::to_string(error.mLineNumber) + ", of module '" + module.getModuleName() + "'";
+				text += "Caused in file '" + WString(error.mFilename).toStdString() + "', line " + std::to_string(error.mError.mLineNumber) + ", of module '" + module.getModuleName() + "'.";
 			RMX_ERROR(text, );
 			return false;
 		}
@@ -201,7 +219,7 @@ bool LemonScriptProgram::loadScripts(const std::string& filename, const LoadOpti
 		}
 	}
 
-	const Configuration& config = Configuration::instance();
+	Configuration& config = Configuration::instance();
 	lemon::GlobalsLookup globalsLookup;
 	globalsLookup.addDefinitionsFromModule(mInternal.mCoreModule);
 
@@ -227,7 +245,7 @@ bool LemonScriptProgram::loadScripts(const std::string& filename, const LoadOpti
 				{
 					VectorBinarySerializer serializer(true, buffer);
 					scriptsLoaded = mInternal.mScriptModule.serialize(serializer);
-					RMX_CHECK(scriptsLoaded, "Failed to deserialize scripts", );
+					RMX_CHECK(scriptsLoaded, "Failed to deserialize scripts, possibly because the compiled script file '" << WString(config.mCompiledScriptSavePath).toStdString() << "' is using an older format", );
 				}
 			}
 		#endif
@@ -320,10 +338,12 @@ bool LemonScriptProgram::loadScripts(const std::string& filename, const LoadOpti
 
 	mInternal.mProgram.setOptimizationLevel(config.mScriptOptimizationLevel);
 
-#if defined(DEBUG)
 	// Optional code nativization
-//	mInternal.mProgram.runNativization(mInternal.mScriptModule, L"source/sonic3air/_nativized/NativizedCode.inc", EmulatorInterface::instance());
-#endif
+	if (config.mRunScriptNativization == 1 && !config.mScriptNativizationOutput.empty())
+	{
+		mInternal.mProgram.runNativization(mInternal.mScriptModule, config.mScriptNativizationOutput, EmulatorInterface::instance());
+		config.mRunScriptNativization = 2;		// Mark as done
+	}
 
 	// Scan for function pragmas defining hooks
 	evaluateFunctionPragmas();

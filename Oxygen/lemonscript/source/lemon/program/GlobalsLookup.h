@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "lemon/program/Constant.h"
 #include "lemon/program/Define.h"
 #include "lemon/program/Function.h"
 #include "lemon/program/StoredString.h"
@@ -34,6 +35,10 @@ namespace lemon
 		const Variable* getGlobalVariableByName(uint64 nameHash) const;
 		void registerVariable(Variable& variable);
 
+		// Constants
+		const Constant* getConstantByName(uint64 nameHash) const;
+		void registerConstant(Constant& constant);
+
 		// Defines
 		const Define* getDefineByName(uint64 nameHash) const;
 		void registerDefine(Define& define);
@@ -49,6 +54,9 @@ namespace lemon
 		// Variables
 		std::unordered_map<uint64, Variable*> mGlobalVariablesByName;
 		uint32 mNextVariableId = 0;
+
+		// Constants
+		std::unordered_map<uint64, Constant*> mConstantsByName;
 
 		// Defines
 		std::unordered_map<uint64, Define*> mDefinesByName;

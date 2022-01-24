@@ -105,6 +105,12 @@
     <ClCompile Include="..\..\source\lemon\runtime\ControlFlow.cpp">
       <Filter>lemon\runtime</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\source\lemon\compiler\TypeCasting.cpp">
+      <Filter>lemon\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\lemon\compiler\Operators.cpp">
+      <Filter>lemon\compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\lemon\compiler\Compiler.h">
@@ -226,6 +232,18 @@
     </ClInclude>
     <ClInclude Include="..\..\source\lemon\runtime\ControlFlow.h">
       <Filter>lemon\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\lemon\program\Constant.h">
+      <Filter>lemon\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\lemon\compiler\TypeCasting.h">
+      <Filter>lemon\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\lemon\compiler\Operators.h">
+      <Filter>lemon\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\lemon\compiler\Errors.h">
+      <Filter>lemon\compiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

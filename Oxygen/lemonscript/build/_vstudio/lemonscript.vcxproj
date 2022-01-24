@@ -22,11 +22,13 @@
     <ClCompile Include="..\..\source\lemon\compiler\Compiler.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\FunctionCompiler.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\Node.cpp" />
+    <ClCompile Include="..\..\source\lemon\compiler\Operators.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\Parser.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\ParserHelper.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\Preprocessor.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\Token.cpp" />
     <ClCompile Include="..\..\source\lemon\compiler\TokenProcessing.cpp" />
+    <ClCompile Include="..\..\source\lemon\compiler\TypeCasting.cpp" />
     <ClCompile Include="..\..\source\lemon\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -52,10 +54,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\lemon\compiler\Compiler.h" />
+    <ClInclude Include="..\..\source\lemon\compiler\Errors.h" />
     <ClInclude Include="..\..\source\lemon\compiler\FunctionCompiler.h" />
     <ClInclude Include="..\..\source\lemon\compiler\GenericManager.h" />
     <ClInclude Include="..\..\source\lemon\compiler\Node.h" />
     <ClInclude Include="..\..\source\lemon\compiler\Definitions.h" />
+    <ClInclude Include="..\..\source\lemon\compiler\Operators.h" />
     <ClInclude Include="..\..\source\lemon\compiler\Parser.h" />
     <ClInclude Include="..\..\source\lemon\compiler\ParserHelper.h" />
     <ClInclude Include="..\..\source\lemon\compiler\ParserTokens.h" />
@@ -64,8 +68,10 @@
     <ClInclude Include="..\..\source\lemon\compiler\Token.h" />
     <ClInclude Include="..\..\source\lemon\compiler\TokenProcessing.h" />
     <ClInclude Include="..\..\source\lemon\compiler\TokenTypes.h" />
+    <ClInclude Include="..\..\source\lemon\compiler\TypeCasting.h" />
     <ClInclude Include="..\..\source\lemon\compiler\Utility.h" />
     <ClInclude Include="..\..\source\lemon\pch.h" />
+    <ClInclude Include="..\..\source\lemon\program\Constant.h" />
     <ClInclude Include="..\..\source\lemon\program\DataType.h" />
     <ClInclude Include="..\..\source\lemon\program\Define.h" />
     <ClInclude Include="..\..\source\lemon\program\Function.h" />

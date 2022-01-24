@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include "lemon/compiler/Utility.h"
 #include "lemon/compiler/Definitions.h"
+#include "lemon/compiler/Operators.h"
+#include "lemon/compiler/Utility.h"
 
 
 namespace lemon
@@ -72,19 +73,35 @@ namespace lemon
 			}
 		}
 
-		inline static void collectStringLiteral(const char* input, size_t length, std::string& output, uint32 lineNumber)
+		inline static void collectStringLiteral(const char* input, size_t length, std::string& output, size_t& outCharactersRead, uint32 lineNumber)
 		{
 			output.clear();
 			size_t pos;
 			for (pos = 0; pos < length; ++pos)
 			{
-				const char ch = input[pos];
-				if (ch != '"')
-					output += ch;
-				else
+				char ch = input[pos];
+
+				// Use backslash as escape character
+				if (ch == '\\' && pos+1 < length)
+				{
+					++pos;
+					ch = input[pos];
+					if (ch == 'n')
+						ch = '\n';
+					else if (ch == 'r')
+						ch = '\r';
+					else if (ch == 't')
+						ch = '\t';
+				}
+				else if (ch == '"')
+				{
 					break;
+				}
+
+				output += ch;
 			}
 			CHECK_ERROR(pos < length, "String literal exceeds line", lineNumber);
+			outCharactersRead = pos;
 		}
 
 		inline static void collectPreprocessorCondition(const char* input, size_t length, std::string& output)
@@ -138,7 +155,11 @@ namespace lemon
 		{
 			for (size_t pos = 0; pos < length; ++pos)
 			{
-				if (input[pos] == '"')
+				if (input[pos] == '\\' && pos+1 < length)
+				{
+					++pos;
+				}
+				else if (input[pos] == '"')
 				{
 					return pos + 1;
 				}
@@ -156,11 +177,11 @@ namespace lemon
 				{
 					const char ch = input[i];
 					if (ch >= '0' && ch <= '9')
-						result = result * 16 + (ch - '0');
+						result = result * 16 + (int64)(ch - '0');
 					else if (ch >= 'A' && ch <= 'F')
-						result = result * 16 + (ch - 'A') + 10;
+						result = result * 16 + (int64)(ch - 'A') + 10;
 					else if (ch >= 'a' && ch <= 'f')
-						result = result * 16 + (ch - 'a') + 10;
+						result = result * 16 + (int64)(ch - 'a') + 10;
 					else
 						CHECK_ERROR(false, "Invalid hexadecimal number", lineNumber);
 				}

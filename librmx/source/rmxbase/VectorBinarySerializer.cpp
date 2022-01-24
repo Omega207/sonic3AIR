@@ -1,6 +1,6 @@
 /*
 *	rmx Library
-*	Copyright (C) 2008-2021 by Eukaryot
+*	Copyright (C) 2008-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -150,7 +150,7 @@ void VectorBinarySerializer::serialize(std::string& value, size_t stringLengthLi
 {
 	if (mReading)
 	{
-		const uint32 length = read<uint32>();
+		const size_t length = (stringLengthLimit <= 0xff) ? static_cast<size_t>(read<uint8>()) : (stringLengthLimit <= 0xffff) ? static_cast<size_t>(read<uint16>()) : read<uint32>();
 
 		// Limit length of strings
 		if (length > stringLengthLimit)
@@ -164,19 +164,27 @@ void VectorBinarySerializer::serialize(std::string& value, size_t stringLengthLi
 			return;
 		}
 
-		value.resize((size_t)length);
-		if (length > 0)
-		{
-			read(&value[0], (size_t)length);
-		}
+		value.resize(length);
 	}
 	else
 	{
-		writeAs<uint32>(value.length());
-		if (!value.empty())
+		if (stringLengthLimit <= 0xff)
 		{
-			write(&value[0], value.length());
+			writeAs<uint8>(value.size());
 		}
+		else if (stringLengthLimit <= 0xffff)
+		{
+			writeAs<uint16>(value.size());
+		}
+		else
+		{
+			writeAs<uint32>(value.size());
+		}
+	}
+
+	if (!value.empty())
+	{
+		serialize(&value[0], value.length());
 	}
 }
 
@@ -237,21 +245,21 @@ void VectorBinarySerializer::serialize(WString& value)
 	if (mReading)
 	{
 		value.expand((int)read<uint32>());
-		read(value.accessData(), value.length() * sizeof(wchar_t));			// TODO: This is not compatible among different platfoms!
+		read(value.accessData(), value.length() * sizeof(wchar_t));			// TODO: This is not compatible among different platforms!
 	}
 	else
 	{
 		writeAs<uint32>(value.length());
 		if (!value.empty())
-			write(value.accessData(), value.length() * sizeof(wchar_t));	// TODO: This is not compatible among different platfoms!
+			write(value.accessData(), value.length() * sizeof(wchar_t));	// TODO: This is not compatible among different platforms!
 	}
 }
 
-void VectorBinarySerializer::serializeData(std::vector<uint8>& data, uint32 bytesLimit)
+void VectorBinarySerializer::serializeData(std::vector<uint8>& data, size_t bytesLimit)
 {
 	if (isReading())
 	{
-		const uint32 numBytes = (bytesLimit <= 0xff) ? static_cast<uint16>(read<uint8>()) : (bytesLimit <= 0xffff) ? static_cast<uint16>(read<uint8>()) : read<uint32>();
+		const size_t numBytes = (bytesLimit <= 0xff) ? static_cast<size_t>(read<uint8>()) : (bytesLimit <= 0xffff) ? static_cast<size_t>(read<uint16>()) : read<uint32>();
 
 		// Limit number of bytes
 		if (numBytes > bytesLimit)
@@ -271,17 +279,18 @@ void VectorBinarySerializer::serializeData(std::vector<uint8>& data, uint32 byte
 	{
 		if (bytesLimit <= 0xff)
 		{
-			write((uint8)data.size());
+			writeAs<uint8>(data.size());
 		}
 		else if (bytesLimit <= 0xffff)
 		{
-			write((uint16)data.size());
+			writeAs<uint16>(data.size());
 		}
 		else
 		{
-			write((uint32)data.size());
+			writeAs<uint32>(data.size());
 		}
 	}
+
 	if (!data.empty())
 	{
 		serialize(&data[0], data.size());

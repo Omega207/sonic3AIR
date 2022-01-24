@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -19,6 +19,7 @@ namespace lemon
 		mFunctionsByName.clear();
 		mGlobalVariablesByName.clear();
 		mDefinesByName.clear();
+		mConstantsByName.clear();
 	}
 
 	void GlobalsLookup::addDefinitionsFromModule(const Module& module)
@@ -30,6 +31,10 @@ namespace lemon
 		for (Variable* variable : module.mGlobalVariables)
 		{
 			registerVariable(*variable);
+		}
+		for (Constant* constant : module.mConstants)
+		{
+			registerConstant(*constant);
 		}
 		for (Define* define : module.mDefines)
 		{
@@ -63,6 +68,18 @@ namespace lemon
 	void GlobalsLookup::registerVariable(Variable& variable)
 	{
 		mGlobalVariablesByName[variable.getNameHash()] = &variable;
+	}
+
+	const Constant* GlobalsLookup::getConstantByName(uint64 nameHash) const
+	{
+		const auto it = mConstantsByName.find(nameHash);
+		return (it == mConstantsByName.end()) ? nullptr : it->second;
+	}
+
+	void GlobalsLookup::registerConstant(Constant& constant)
+	{
+		const uint64 nameHash = rmx::getMurmur2_64(constant.getName());
+		mConstantsByName[nameHash] = &constant;
 	}
 
 	const Define* GlobalsLookup::getDefineByName(uint64 nameHash) const

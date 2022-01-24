@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -10,6 +10,7 @@
 #include "lemon/compiler/FunctionCompiler.h"
 #include "lemon/compiler/Node.h"
 #include "lemon/compiler/TokenTypes.h"
+#include "lemon/compiler/TypeCasting.h"
 #include "lemon/compiler/Utility.h"
 #include "lemon/program/Program.h"
 
@@ -90,7 +91,7 @@ namespace lemon
 	};
 
 
-	FunctionCompiler::FunctionCompiler(ScriptFunction& function, const Configuration& config) :
+	FunctionCompiler::FunctionCompiler(ScriptFunction& function, const GlobalCompilerConfig& config) :
 		mFunction(function),
 		mConfig(config),
 		mOpcodes(function.mOpcodes)
@@ -179,35 +180,17 @@ namespace lemon
 
 	void FunctionCompiler::addCastOpcodeIfNecessary(const DataTypeDefinition* sourceType, const DataTypeDefinition* targetType)
 	{
-		// Both integers?
-		if (sourceType->mClass == DataTypeDefinition::Class::INTEGER && targetType->mClass == DataTypeDefinition::Class::INTEGER)
+		const BaseCastType castType = TypeCasting(mConfig).getBaseCastType(sourceType, targetType);
+		if (castType != BaseCastType::NONE)
 		{
-			const uint8 sourceBits = (uint8)DataTypeHelper::getBaseType(sourceType);
-			const uint8 targetBits = (uint8)DataTypeHelper::getBaseType(targetType);
-
-			// Size is between 0 and 3 (for 8-bit, 16-bit, 32-bit, 64-bit)
-			//  -> We are silently treating INT_CONST as INT_64 by ignoring flag 0x04
-			const uint8 sourceSize = (sourceBits & 0x03);
-			const uint8 targetSize = (targetBits & 0x03);
-
-			// No need for an opcode if size does not change at all
-			if (sourceSize != targetSize)
+			if (castType != BaseCastType::INVALID)
 			{
-				uint8 castType = (sourceSize << 4) + targetSize;
-
-				// Recognize signed up-cast
-				const bool isSourceSigned = (sourceBits & 0x08) != 0;
-				if (isSourceSigned && targetSize > sourceSize)
-				{
-					castType += 0x80;
-				}
-
-				addOpcode(Opcode::Type::CAST_VALUE, BaseType::VOID, castType);
+				addOpcode(Opcode::Type::CAST_VALUE, BaseType::VOID, (int64)castType);
 			}
-		}
-		else
-		{
-			CHECK_ERROR(false, "Cannot cast from " << sourceType->toString() << " to " << targetType->toString(), mLineNumber);
+			else
+			{
+				CHECK_ERROR(false, "Cannot cast from " << sourceType->toString() << " to " << targetType->toString(), mLineNumber);
+			}
 		}
 	}
 
@@ -434,10 +417,6 @@ namespace lemon
 				break;
 			}
 
-			case Node::Type::ELSE_STATEMENT:
-				CHECK_ERROR(false, "Else statement not allowed here", node.getLineNumber());
-				break;
-
 			default:
 				break;
 		}
@@ -526,7 +505,13 @@ namespace lemon
 					case Operator::BINARY_AND:				 compileBinaryOperationToOpcodes(bot, Opcode::Type::ARITHM_AND);	break;
 					case Operator::BINARY_OR:				 compileBinaryOperationToOpcodes(bot, Opcode::Type::ARITHM_OR);		break;
 					case Operator::BINARY_XOR:				 compileBinaryOperationToOpcodes(bot, Opcode::Type::ARITHM_XOR);	break;
-					case Operator::COMPARE_EQUAL:			 compileBinaryOperationToOpcodes(bot, Opcode::Type::COMPARE_EQ);	break;
+
+					case Operator::COMPARE_EQUAL:
+						compileBinaryOperationToOpcodes(bot, Opcode::Type::COMPARE_EQ);
+						if (consumeResult && mConfig.mScriptFeatureLevel >= 2)
+							CHECK_ERROR(false, "Result of comparison is not used, this is certainly a mistake in the script", mLineNumber);
+						break;
+
 					case Operator::COMPARE_NOT_EQUAL:		 compileBinaryOperationToOpcodes(bot, Opcode::Type::COMPARE_NEQ);	break;
 					case Operator::COMPARE_LESS:			 compileBinaryOperationToOpcodes(bot, Opcode::Type::COMPARE_LT);	break;
 					case Operator::COMPARE_LESS_OR_EQUAL:	 compileBinaryOperationToOpcodes(bot, Opcode::Type::COMPARE_LE);	break;
@@ -645,26 +630,11 @@ namespace lemon
 			case Token::Type::FUNCTION:
 			{
 				const FunctionToken& ft = token.as<FunctionToken>();
-				const TokenList& content = ft.mParenthesis->mContent;
 
-				if (!content.empty())
+				// TODO: Check parameters vs. function signature?
+				for (const TokenPtr<StatementToken>& token : ft.mParameters)
 				{
-					// TODO: Check parameters vs. function signature
-					CHECK_ERROR(content.size() == 1, "More than one token left in function parameters", mLineNumber);
-					if (content[0].getType() == Token::Type::COMMA_SEPARATED)
-					{
-						for (const TokenList& tokens : content[0].as<CommaSeparatedListToken>().mContent)
-						{
-							CHECK_ERROR(tokens.size() == 1, "More than one token left between commas", mLineNumber);
-							CHECK_ERROR(tokens[0].isStatement(), "Expected a statement as function parameter", mLineNumber);
-							compileTokenTreeToOpcodes(tokens[0].as<StatementToken>());
-						}
-					}
-					else
-					{
-						CHECK_ERROR(content[0].isStatement(), "Expected a statement as function parameter", mLineNumber);
-						compileTokenTreeToOpcodes(content[0].as<StatementToken>());
-					}
+					compileTokenTreeToOpcodes(*token);
 				}
 
 				// Using the data type parameter here to encode whether or not this is a base function call
@@ -941,7 +911,7 @@ namespace lemon
 				{
 					const bool conditionMet = (firstOpcode.mParameter != 0);
 					const Opcode& condJumpOpcode = mOpcodes[condJumpPosition];
-					uint64 jumpTarget = conditionMet ? (uint64)(condJumpPosition + 1) : condJumpOpcode.mParameter;
+					uint64 jumpTarget = conditionMet ? ((uint64)condJumpPosition + 1) : condJumpOpcode.mParameter;
 
 					// Check for a shortcut (as this is not ruled out at that point)
 					if (mOpcodes[(size_t)jumpTarget].mType == Opcode::Type::JUMP)

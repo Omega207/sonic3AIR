@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -13,25 +13,19 @@
 
 namespace lemon
 {
-
 	class ScriptFunction;
 	class Node;
 	class BlockNode;
 	class StatementToken;
 	class BinaryOperationToken;
+	struct GlobalCompilerConfig;
 
 	class FunctionCompiler
 	{
 	friend struct OpcodeBuilder;
 
 	public:
-		struct Configuration
-		{
-			const DataTypeDefinition* mExternalAddressType = nullptr;
-		};
-
-	public:
-		FunctionCompiler(ScriptFunction& function, const Configuration& config);
+		FunctionCompiler(ScriptFunction& function, const GlobalCompilerConfig& config);
 
 		void processParameters();
 		void buildOpcodesForFunction(const BlockNode& blockNode);
@@ -65,7 +59,7 @@ namespace lemon
 
 	private:
 		ScriptFunction& mFunction;
-		const Configuration& mConfig;
+		const GlobalCompilerConfig& mConfig;
 		std::vector<Opcode>& mOpcodes;
 		uint32 mLineNumber = 0;		// For error output
 	};

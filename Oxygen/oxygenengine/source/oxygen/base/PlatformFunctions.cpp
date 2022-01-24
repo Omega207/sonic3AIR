@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,7 +8,10 @@
 
 #include "oxygen/pch.h"
 #include "oxygen/base/PlatformFunctions.h"
-#include "oxygen/helper/Log.h"
+#include "oxygen/helper/HighResolutionTimer.h"
+#include "oxygen/helper/Logging.h"
+
+#include <thread>
 
 #ifdef PLATFORM_WINDOWS
 	#include <CleanWindowsInclude.h>
@@ -123,19 +126,121 @@ namespace
 		for (const WString& searchPath : searchPaths)
 		{
 			WString romFilename = searchPath + localPath;
-			LOG_INFO("Searching ROM at location: " << romFilename.toStdString());
+			RMX_LOG_INFO("Searching ROM at location: " << romFilename.toStdString());
 
 			if (FTX::FileSystem->exists(*romFilename))
 			{
-				LOG_INFO("Success!");
+				RMX_LOG_INFO("Success!");
 				return *romFilename;
 			}
-			LOG_INFO("Not found");
+			RMX_LOG_INFO("Not found");
 		}
 		return WString();
 	}
 }
 
+
+
+void PlatformFunctions::preciseDelay(double milliseconds)
+{
+	// This function is based on work by Sewer56, and used with his permission here
+	//  -> For the original, see https://github.com/Sewer56/sonic3air
+
+	const double timerGranularity = getTimerGranularityMilliseconds();	// As a side effect, this function sets the optimal timer granularity
+
+	HighResolutionTimer timer;
+	timer.start();
+	while (true)
+	{
+		const double timeLeft = milliseconds - timer.getSecondsSinceStart() * 1000.0;
+		if (timeLeft <= 0.0)
+			break;
+
+		const double sleepTimeLeft = timeLeft - timerGranularity;
+
+		// Don't spin on mobile platforms, accept some imprecision to avoid battery drain
+		#if defined(PLATFORM_WINDOWS) || defined(PLATFORM_MACOS) || defined(PLATFORM_LINUX)
+		{
+			// Spin if below granularity
+			if (sleepTimeLeft < 0.0)
+			{
+				double lastYieldTimeMs = std::numeric_limits<double>::max();
+				while (true)
+				{
+					const double timeLeft = milliseconds - timer.getSecondsSinceStart() * 1000.0;
+					if (timeLeft <= 0.0)
+						break;
+
+					if (timeLeft > lastYieldTimeMs)		// Otherwise it's essentially busy waiting
+					{
+						HighResolutionTimer yieldTimer;
+						yieldTimer.start();
+						std::this_thread::yield();
+						lastYieldTimeMs = yieldTimer.getSecondsSinceStart();
+					}
+				}
+				break;
+			}
+		}
+		#endif
+
+		// Is the remaining time rounded down to full milliseconds above the timer granularity?
+		if (sleepTimeLeft >= 1.0)
+		{
+			// Sleep the thread if above granularity
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)sleepTimeLeft));
+		}
+		else
+		{
+			// Yield the thread if below granularity
+			std::this_thread::yield();
+		}
+	}
+}
+
+double PlatformFunctions::getTimerGranularityMilliseconds()
+{
+	// This function is based on work by Sewer56, and used with his permission here
+	//  -> For the original, see https://github.com/Sewer56/sonic3air
+
+	static double timerGranularity = 0.0;
+	static bool initialized = false;
+	if (!initialized)
+	{
+	#ifdef PLATFORM_WINDOWS
+		// Query range of possible timer granularities and use the minimum if possible
+		const HINSTANCE hLibrary = LoadLibrary("NTDLL.dll");
+		if (nullptr != hLibrary)
+		{
+			typedef NTSTATUS(NTAPI* pQueryTimerResolution)(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution);
+			typedef NTSTATUS(NTAPI* pSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution);
+
+			pSetTimerResolution setFunction = (pSetTimerResolution)GetProcAddress(hLibrary, "NtSetTimerResolution");
+			pQueryTimerResolution queryFunction = (pQueryTimerResolution)GetProcAddress(hLibrary, "NtQueryTimerResolution");
+			if (nullptr != setFunction && nullptr != queryFunction)
+			{
+				// Note that these resolutions are measured in units of 100 nanoseconds
+				ULONG minResolution, maxResolution, actualResolution;
+				queryFunction(&minResolution, &maxResolution, &actualResolution);
+				const NTSTATUS status = setFunction(maxResolution, TRUE, &actualResolution);
+				if (status == 0)
+				{
+					timerGranularity = actualResolution / 10000.0;	// Convert to milliseconds
+					initialized = true;
+				}
+			}
+		}
+	#endif
+
+		// For other platforms, or when something went wrong, assume a timer granularity of 1 millisecond
+		if (!initialized)
+		{
+			timerGranularity = 1.0;
+			initialized = true;
+		}
+	}
+	return timerGranularity;
+}
 
 void PlatformFunctions::changeWorkingDirectory(const std::string& execCallPath)
 {
@@ -223,7 +328,7 @@ std::wstring PlatformFunctions::tryGetSteamRomPath(const std::wstring& romName)
 	const std::wstring steamPath = getSteamInstallationPath();
 	if (!steamPath.empty())
 	{
-		LOG_INFO("Steam installation found: " << WString(steamPath).toStdString());
+		RMX_LOG_INFO("Steam installation found: " << WString(steamPath).toStdString());
 		std::vector<WString> searchPaths;
 		searchPaths.push_back(steamPath);
 		const WString baseInstallFolder = getSteamBaseInstallFolder(steamPath + L"/config/config.vdf");
@@ -433,13 +538,5 @@ bool PlatformFunctions::isDebuggerPresent()
 	return IsDebuggerPresent() != 0;
 #else
 	return false;
-#endif
-}
-
-void PlatformFunctions::debugLog(const std::string& string)
-{
-	// Assuming the string does not contain line ending already
-#ifdef PLATFORM_WINDOWS
-	OutputDebugString((string + "\r\n").c_str());
 #endif
 }

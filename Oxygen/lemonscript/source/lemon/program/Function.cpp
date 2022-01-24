@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -15,6 +15,15 @@
 
 namespace lemon
 {
+	namespace detail
+	{
+		uint32 getVoidSignatureHash()
+		{
+			uint32 value = PredefinedDataTypes::VOID.getDataTypeHash();
+			return rmx::getFNV1a_32((const uint8*)&value, sizeof(uint32));
+		}
+	}
+
 
 	void Function::setParametersByTypes(const std::vector<const DataTypeDefinition*>& parameterTypes)
 	{
@@ -29,12 +38,7 @@ namespace lemon
 
 	uint32 Function::getVoidSignatureHash()
 	{
-		static uint32 signatureHash = 0;
-		if (signatureHash == 0)
-		{
-			uint8 value = (uint8)BaseType::VOID;
-			signatureHash = rmx::getCRC32(&value, 1);
-		}
+		static const uint32 signatureHash = detail::getVoidSignatureHash();
 		return signatureHash;
 	}
 
@@ -42,19 +46,19 @@ namespace lemon
 	{
 		if (mSignatureHash == 0)
 		{
-			static std::vector<uint8> data;
+			static std::vector<uint32> data;
 			data.clear();
-			data.push_back((uint8)DataTypeHelper::getBaseType(mReturnType));
+			data.push_back(mReturnType->getDataTypeHash());
 			for (const Parameter& parameter : mParameters)
 			{
-				data.push_back((uint8)DataTypeHelper::getBaseType(parameter.mType));
+				data.push_back(parameter.mType->getDataTypeHash());
 			}
 
-			mSignatureHash = rmx::getCRC32(&data[0], (uint32)data.size());
+			mSignatureHash = rmx::getFNV1a_32((const uint8*)&data[0], data.size() * sizeof(uint32));
 			while (mSignatureHash == 0)		// That should be a really rare case anyway
 			{
-				data.push_back(0xcd);		// Just add anything to get away from hash 0
-				mSignatureHash = rmx::getCRC32(&data[0], (uint32)data.size());
+				data.push_back(0xcd000000);		// Just add anything to get away from hash 0
+				mSignatureHash = rmx::getFNV1a_32((const uint8*)&data[0], data.size() * sizeof(uint32));
 			}
 		}
 		return mSignatureHash;
@@ -134,6 +138,14 @@ namespace lemon
 		mFunctionWrapper = &functionWrapper;
 		mReturnType = functionWrapper.getReturnType();
 		setParametersByTypes(functionWrapper.getParameterTypes());
+	}
+
+	UserDefinedFunction& UserDefinedFunction::setParameterInfo(size_t index, const std::string& identifier)
+	{
+		RMX_ASSERT(index < mParameters.size(), "Invalid parameter index " << index);
+		RMX_ASSERT(mParameters[index].mIdentifier.empty(), "Parameter identifier is already set for index " << index);
+		mParameters[index].mIdentifier = identifier;
+		return *this;
 	}
 
 	void UserDefinedFunction::execute(const Context context) const

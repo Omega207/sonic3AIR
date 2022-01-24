@@ -1,6 +1,6 @@
 /*
 *	rmx Library
-*	Copyright (C) 2008-2021 by Eukaryot
+*	Copyright (C) 2008-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -13,29 +13,50 @@
 namespace rmx
 {
 
-	static const constexpr uint64 FNV1a_START_VALUE = 0xcbf29ce484222325;
-	static const constexpr uint64 FNV1a_MAGIC_PRIME = 0x00000100000001b3;
+	uint32 getFNV1a_32(const uint8* data, size_t bytes)
+	{
+		uint32 hash = FNV1a_32_START_VALUE;
+		for (size_t i = 0; i < bytes; ++i)
+		{
+			hash = (hash ^ data[i]) * FNV1a_32_MAGIC_PRIME;
+		}
+		return hash;
+	}
+
+	uint32 startFNV1a_32()
+	{
+		return FNV1a_32_START_VALUE;
+	}
+
+	uint32 addToFNV1a_32(uint32 hash, const uint8* data, size_t bytes)
+	{
+		for (size_t i = 0; i < bytes; ++i)
+		{
+			hash = (hash ^ data[i]) * FNV1a_32_MAGIC_PRIME;
+		}
+		return hash;
+	}
 
 	uint64 getFNV1a_64(const uint8* data, size_t bytes)
 	{
-		uint64 hash = FNV1a_START_VALUE;
+		uint64 hash = FNV1a_64_START_VALUE;
 		for (size_t i = 0; i < bytes; ++i)
 		{
-			hash = (hash ^ data[i]) * FNV1a_MAGIC_PRIME;
+			hash = (hash ^ data[i]) * FNV1a_64_MAGIC_PRIME;
 		}
 		return hash;
 	}
 
 	uint64 startFNV1a_64()
 	{
-		return FNV1a_START_VALUE;
+		return FNV1a_64_START_VALUE;
 	}
 
 	uint64 addToFNV1a_64(uint64 hash, const uint8* data, size_t bytes)
 	{
 		for (size_t i = 0; i < bytes; ++i)
 		{
-			hash = (hash ^ data[i]) * FNV1a_MAGIC_PRIME;
+			hash = (hash ^ data[i]) * FNV1a_64_MAGIC_PRIME;
 		}
 		return hash;
 	}
@@ -64,11 +85,11 @@ namespace rmx
 				//  -> This somewhat defeats the purpose of the whole optimization by using Murmur2...
 				memcpy(&k, data64, sizeof(uint64_t));
 				++data64;
-				k *= m; 
-				k ^= k >> r; 
-				k *= m; 
+				k *= m;
+				k ^= k >> r;
+				k *= m;
 				h ^= k;
-				h *= m; 
+				h *= m;
 			}
 		}
 		else
@@ -77,11 +98,11 @@ namespace rmx
 			while (data64 != end)
 			{
 				uint64 k = *data64++;
-				k *= m; 
-				k ^= k >> r; 
-				k *= m; 
+				k *= m;
+				k ^= k >> r;
+				k *= m;
 				h ^= k;
-				h *= m; 
+				h *= m;
 			}
 		}
 
@@ -181,11 +202,11 @@ namespace rmx
 			uint64 nextDigit;
 			const char ch = input[pos];
 			if (ch >= '0' && ch <= '9')
-				nextDigit = (ch - '0');
+				nextDigit = (uint64)(ch - '0');
 			else if (base == 16 && ch >= 'A' && ch <= 'F')
-				nextDigit = (ch - 'A') + 10;
+				nextDigit = (uint64)(ch - 'A') + 10;
 			else if (base == 16 && ch >= 'a' && ch <= 'f')
-				nextDigit = (ch - 'a') + 10;
+				nextDigit = (uint64)(ch - 'a') + 10;
 			else
 				break;
 

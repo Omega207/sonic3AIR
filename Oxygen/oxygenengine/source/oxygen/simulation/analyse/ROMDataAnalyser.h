@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -49,6 +49,8 @@ private:
 	void recursiveLoadDataFromJSON(const Json::Value& json, Object& outObject);
 	void saveDataToJSONs(const std::wstring& filepath);
 	void recursiveSaveDataToJSON(Json::Value& outJson, const Object& object);
+
+	void processData();
 
 private:
 	std::map<uint64, Category> mCategories;

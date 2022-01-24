@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -29,14 +29,16 @@ namespace lemon
 			{ rmx::getMurmur2_64(String("u16")),	&PredefinedDataTypes::UINT_16 },
 			{ rmx::getMurmur2_64(String("u32")),	&PredefinedDataTypes::UINT_32 },
 			{ rmx::getMurmur2_64(String("u64")),	&PredefinedDataTypes::UINT_64 },
-			{ rmx::getMurmur2_64(String("string")),	&PredefinedDataTypes::UINT_64 }		// Only a synonym for u64
+			{ rmx::getMurmur2_64(String("string")),	&PredefinedDataTypes::STRING }
 		};
 
 		static const std::map<uint64, Keyword> keywordLookup =
 		{
 			{ rmx::getMurmur2_64(String("function")),	Keyword::FUNCTION },
 			{ rmx::getMurmur2_64(String("global")),		Keyword::GLOBAL },
+			{ rmx::getMurmur2_64(String("constant")),	Keyword::CONSTANT },
 			{ rmx::getMurmur2_64(String("define")),		Keyword::DEFINE },
+			{ rmx::getMurmur2_64(String("declare")),	Keyword::DECLARE },
 			{ rmx::getMurmur2_64(String("return")),		Keyword::RETURN },
 			{ rmx::getMurmur2_64(String("call")),		Keyword::CALL },
 			{ rmx::getMurmur2_64(String("jump")),		Keyword::JUMP },
@@ -57,7 +59,17 @@ namespace lemon
 			"switch",
 			"case",
 			"select",
-			"choose"
+			"choose",
+			"do",
+			"const",
+			"fixed",
+			"static",
+			"virtual",
+			"override",
+			"function",
+			"enum",
+			"struct",
+			"class"
 		};
 		static std::map<uint64, std::string> reservedKeywordLookup;
 
@@ -215,10 +227,12 @@ namespace lemon
 			else if (firstCharacter == '"')
 			{
 				// It is a string
-				ParserHelper::collectStringLiteral(&input[pos + 1], length - pos - 1, mBufferString, lineNumber);
+				++pos;
+				size_t charactersRead;
+				ParserHelper::collectStringLiteral(&input[pos], length - pos, mBufferString, charactersRead, lineNumber);
 				StringLiteralParserToken& token = outTokens.create<StringLiteralParserToken>();
 				token.mString = mBufferString;
-				pos += mBufferString.length() + 2;
+				pos += charactersRead + 1;
 			}
 			else
 			{

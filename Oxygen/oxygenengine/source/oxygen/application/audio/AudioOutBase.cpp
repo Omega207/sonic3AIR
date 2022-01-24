@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -72,9 +72,9 @@ bool AudioOutBase::isPlayingSfxId(uint64 sfxId) const
 	return mAudioPlayer.isPlayingSfxId(sfxId);
 }
 
-void AudioOutBase::playAudioBase(uint64 sfxId, uint8 contextId)
+bool AudioOutBase::playAudioBase(uint64 sfxId, uint8 contextId)
 {
-	mAudioPlayer.playAudio(sfxId, contextId);
+	return mAudioPlayer.playAudio(sfxId, contextId);
 }
 
 void AudioOutBase::playOverride(uint64 sfxId, uint8 contextId, uint8 channelId, uint8 overriddenChannelId)

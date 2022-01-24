@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -55,6 +55,21 @@ namespace lemon
 		ObjectPool<TableEntry, 64> mEntryPool;
 		TableEntry* mTable[HASH_TABLE_SIZE] = { nullptr };	// Using lowest 10 bits of the key as index
 		size_t mNumEntries = 0;
+	};
+
+
+	struct API_EXPORT StringRef
+	{
+		uint64 mHash = 0;
+		const StoredString* mStoredString = nullptr;
+
+		inline StringRef() {}
+		inline explicit StringRef(uint64 hash) : mHash(hash) {}
+		inline StringRef(uint64 hash, const StoredString* storedString) : mHash(hash), mStoredString(storedString) {}
+
+		inline bool isValid() const  { return (nullptr != mStoredString); }
+		inline const std::string* operator->() const  { return &mStoredString->getString(); }
+		inline const std::string& operator*() const   { return mStoredString->getString(); }
 	};
 
 }

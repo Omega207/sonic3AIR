@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "lemon/program/Constant.h"
 #include "lemon/program/Define.h"
 #include "lemon/program/Function.h"
 #include "lemon/program/StoredString.h"
@@ -35,6 +36,8 @@ namespace lemon
 
 		void startCompiling(const GlobalsLookup& globalsLookup);
 
+		void dumpDefinitionsToScriptFile(const std::wstring& filename);
+
 		// Functions
 		inline const std::vector<ScriptFunction*>& getScriptFunctions() const { return mScriptFunctions; }
 		const Function* getFunctionByUniqueId(uint64 uniqueId) const;
@@ -47,6 +50,9 @@ namespace lemon
 		GlobalVariable& addGlobalVariable(const std::string& name, const DataTypeDefinition* dataType);
 		UserDefinedVariable& addUserDefinedVariable(const std::string& name, const DataTypeDefinition* dataType);
 		ExternalVariable& addExternalVariable(const std::string& name, const DataTypeDefinition* dataType);
+
+		// Constants
+		Constant& addConstant(const std::string& name, const DataTypeDefinition* dataType, uint64 value);
 
 		// Defines
 		Define& addDefine(const std::string& name, const DataTypeDefinition* dataType);
@@ -80,6 +86,10 @@ namespace lemon
 		uint32 mFirstVariableId = 0;
 		std::vector<Variable*> mGlobalVariables;
 		ObjectPool<LocalVariable, 16> mLocalVariablesPool;
+
+		// Constants
+		std::vector<Constant*> mConstants;
+		ObjectPool<Constant, 64> mConstantPool;
 
 		// Defines
 		std::vector<Define*> mDefines;

@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -77,6 +77,31 @@ namespace lemon
 		}
 	}
 
+	void Module::dumpDefinitionsToScriptFile(const std::wstring& filename)
+	{
+		String content;
+		content << "// This file was auto-generated from the definitions in lemon script module '" << getModuleName() << "'.\r\n";
+		content << "\r\n";
+		
+		for (const Function* function : mFunctions)
+		{
+			content << "\r\n";
+			content << "declare function " << function->getReturnType()->toString() << " " << function->getName() << "(";
+			for (size_t i = 0; i < function->getParameters().size(); ++i)
+			{
+				if (i != 0)
+					content << ", ";
+				const Function::Parameter& parameter = function->getParameters()[i];
+				content << parameter.mType->toString();
+				if (!parameter.mIdentifier.empty())
+					content << " " << parameter.mIdentifier;
+			}
+			content << ")\r\n";
+		}
+
+		content.saveFile(filename);
+	}
+
 	const Function* Module::getFunctionByUniqueId(uint64 uniqueId) const
 	{
 		RMX_ASSERT(mModuleId == (uniqueId & 0xffffffffffff0000ull), "Function unique ID is not valid for this module");
@@ -119,7 +144,7 @@ namespace lemon
 
 	GlobalVariable& Module::addGlobalVariable(const std::string& identifier, const DataTypeDefinition* dataType)
 	{
-		// TODO: Add an alloc buffer for this
+		// TODO: Add an object pool for this
 		GlobalVariable& variable = *new GlobalVariable();
 		addGlobalVariable(variable, identifier, dataType);
 		return variable;
@@ -127,7 +152,7 @@ namespace lemon
 
 	UserDefinedVariable& Module::addUserDefinedVariable(const std::string& identifier, const DataTypeDefinition* dataType)
 	{
-		// TODO: Add an alloc buffer for this
+		// TODO: Add an object pool for this
 		UserDefinedVariable& variable = *new UserDefinedVariable();
 		addGlobalVariable(variable, identifier, dataType);
 		return variable;
@@ -135,7 +160,7 @@ namespace lemon
 
 	ExternalVariable& Module::addExternalVariable(const std::string& identifier, const DataTypeDefinition* dataType)
 	{
-		// TODO: Add an alloc buffer for this
+		// TODO: Add an object pool for this
 		ExternalVariable& variable = *new ExternalVariable();
 		addGlobalVariable(variable, identifier, dataType);
 		return variable;
@@ -160,6 +185,16 @@ namespace lemon
 		mLocalVariablesPool.destroyObject(variable);
 	}
 
+	Constant& Module::addConstant(const std::string& name, const DataTypeDefinition* dataType, uint64 value)
+	{
+		Constant& constant = mConstantPool.createObject();
+		constant.mName = name;
+		constant.mDataType = dataType;
+		constant.mValue = value;
+		mConstants.emplace_back(&constant);
+		return constant;
+	}
+
 	Define& Module::addDefine(const std::string& name, const DataTypeDefinition* dataType)
 	{
 		Define& define = mDefinePool.createObject();
@@ -173,7 +208,7 @@ namespace lemon
 	{
 		return &mStringLiterals.getOrAddString(str);
 	}
-	
+
 	const StoredString* Module::addStringLiteral(const std::string& str, uint64 hash)
 	{
 		return &mStringLiterals.getOrAddString(str, hash);
@@ -187,10 +222,12 @@ namespace lemon
 		//  - 0x02 = Variable size of opcode parameter serialization + dumping backwards compatibility with older versions, as it's not really needed
 		//  - 0x03 = Added opcode flags and deflate compression
 		//  - 0x04 = Added source information to function serialization
+		//  - 0x05 = Added serialization of constants
+		//  - 0x06 = Support for string data type in serialization - this breaks compatibility with older versions
 
 		// Signature and version number
 		const uint32 SIGNATURE = *(uint32*)"LMD|";
-		uint16 version = 0x04;
+		uint16 version = 0x06;
 		if (outerSerializer.isReading())
 		{
 			const uint32 signature = *(const uint32*)outerSerializer.peek();
@@ -199,7 +236,7 @@ namespace lemon
 
 			outerSerializer.skip(4);
 			version = outerSerializer.read<uint16>();
-			if (version < 0x03)
+			if (version < 0x06)
 				return false;	// Loading older versions is not supported
 		}
 		else
@@ -255,11 +292,8 @@ namespace lemon
 						uint32 lastLineNumber = 0;
 
 						// Source information
-						if (version >= 0x04)
-						{
-							serializer.serialize(scriptFunc.mSourceFilename);
-							serializer.serialize(scriptFunc.mSourceBaseLineOffset);
-						}
+						serializer.serialize(scriptFunc.mSourceFilename);
+						serializer.serialize(scriptFunc.mSourceBaseLineOffset);
 
 						// Opcodes
 						size_t count = (size_t)serializer.read<uint32>();
@@ -449,6 +483,32 @@ namespace lemon
 				serializer.write(variable.getName());
 				DataTypeHelper::writeDataType(serializer, variable.getDataType());
 				serializer.writeAs<int64>(globalVariable.mInitialValue);
+			}
+		}
+
+		// Serialize constants
+		{
+			uint32 numberOfConstants = (uint32)mConstants.size();
+			serializer & numberOfConstants;
+
+			if (serializer.isReading())
+			{
+				for (uint32 i = 0; i < numberOfConstants; ++i)
+				{
+					const std::string name = serializer.read<std::string>();
+					const DataTypeDefinition* dataType = DataTypeHelper::readDataType(serializer);
+					const uint64 value = serializer.read<uint64>();
+					Constant& constant = addConstant(name, dataType, value);
+				}
+			}
+			else
+			{
+				for (Constant* constant : mConstants)
+				{
+					serializer.write(constant->getName());
+					DataTypeHelper::writeDataType(serializer, constant->getDataType());
+					serializer.write(constant->mValue);
+				}
 			}
 		}
 

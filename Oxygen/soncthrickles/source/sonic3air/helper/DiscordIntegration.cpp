@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -215,7 +215,7 @@ void DiscordIntegration::updateInfo(Game::Mode gameMode, uint32 subMode, Emulato
 						String initials = zone->mInitials;
 						initials.upperCase();
 						state += *initials;
-						const bool multipleActs = (zone->mActsFreeRoam >= 2);
+						const bool multipleActs = (zone->mActsNormal >= 2);
 						if (multipleActs)
 						{
 							state = state + " " + ((currentInfo.mZoneAct & 1) ? "2" : "1");
@@ -224,7 +224,7 @@ void DiscordIntegration::updateInfo(Game::Mode gameMode, uint32 subMode, Emulato
 					else
 					{
 						state += zone->mDisplayName;
-						const bool multipleActs = (zone->mActsFreeRoam >= 2);
+						const bool multipleActs = (zone->mActsNormal >= 2);
 						if (multipleActs)
 						{
 							state = state + " Act " + ((currentInfo.mZoneAct & 1) ? "2" : "1");

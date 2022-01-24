@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -30,6 +30,15 @@ public:
 		WINDOWED,
 		BORDERLESS_FULLSCREEN,
 		EXCLUSIVE_FULLSCREEN
+	};
+
+	enum class FrameSyncType
+	{
+		VSYNC_OFF,
+		VSYNC_ON,
+		VSYNC_FRAMECAP,
+		FRAME_INTERPOLATION,
+		_NUM
 	};
 
 	struct VirtualGamepad
@@ -126,7 +135,7 @@ public:
 	int   mDisplayIndex = 0;
 	RenderMethod mRenderMethod = RenderMethod::UNDEFINED;
 	bool  mAutoDetectRenderMethod = true;
-	int   mFrameSync = 1;
+	FrameSyncType mFrameSync = FrameSyncType::VSYNC_ON;
 	int   mUpscaling = 0;
 	int   mBackdrop = 0;
 	int   mFiltering = 0;
@@ -155,6 +164,10 @@ public:
 	int mScriptOptimizationLevel = 3;
 	std::wstring mCompiledScriptSavePath;
 	bool mEnableROMDataAnalyzer = false;
+	bool mExitAfterScriptLoading = false;
+	int mRunScriptNativization = 0;			// 0: Disabled, 1: Run nativization, 2: Nativization done
+	std::wstring mScriptNativizationOutput;
+	std::wstring mDumpCppDefinitionsOutput;
 
 	// Mod settings
 	std::map<uint64, Mod> mModSettings;

@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -26,6 +26,8 @@ void ConfigurationImpl::preLoadInitialization()
 
 bool ConfigurationImpl::loadConfigurationInternal(JsonHelper& jsonHelper)
 {
+	loadSharedSettingsConfig(jsonHelper);
+
 	// Add special preprocessor define
 	//  -> Used to query whether it's the game build (i.e. not the Oxygen App), and to get its build number
 	mPreprocessorDefinitions.setDefinition("GAMEAPP", BUILD_NUMBER);
@@ -56,6 +58,45 @@ bool ConfigurationImpl::loadSettingsInternal(JsonHelper& rootHelper, SettingsTyp
 	return true;
 }
 
+void ConfigurationImpl::loadSharedSettingsConfig(JsonHelper& rootHelper)
+{
+	// Game server
+	{
+		const Json::Value& gameServerJson = rootHelper.mJson["GameServer"];
+		if (!gameServerJson.isNull())
+		{
+			// General game server settings
+			JsonHelper gameServerHelper(gameServerJson);
+			std::string serverAddress;
+			if (gameServerHelper.tryReadString("ServerAddress", serverAddress))
+			{
+				String str = serverAddress;
+				const int pos = str.findChar(':', 0, +1);
+				if (pos >= 0 && pos < str.length())
+				{
+					mGameServer.mServerHostName = *str.getSubString(0, pos);
+					mGameServer.mServerPort = str.getSubString(pos+1, str.length() - (pos+1)).parseInt();
+				}
+				else
+				{
+					mGameServer.mServerHostName = *str;
+					mGameServer.mServerPort = 21094;	// That's the default port
+				}
+			}
+
+			// Ghost sync settings
+			const Json::Value& ghostSyncJson = gameServerHelper.mJson["GhostSync"];
+			if (!ghostSyncJson.isNull())
+			{
+				JsonHelper jsonHelper(ghostSyncJson);
+				jsonHelper.tryReadBool("Enabled", mGameServer.mGhostSync.mEnabled);
+				jsonHelper.tryReadString("ChannelName", mGameServer.mGhostSync.mChannelName);
+				jsonHelper.tryReadBool("ShowOffscreenGhosts", mGameServer.mGhostSync.mShowOffscreenGhosts);
+			}
+		}
+	}
+}
+
 void ConfigurationImpl::loadSettingsInternal(JsonHelper& rootHelper, SettingsType settingsType, bool isDeprecatedJson)
 {
 	if (!isDeprecatedJson && settingsType == SettingsType::STANDARD)
@@ -73,6 +114,8 @@ void ConfigurationImpl::loadSettingsInternal(JsonHelper& rootHelper, SettingsTyp
 				loadSettingsInternal(deprecatedJsonHelper, settingsType, true);
 			}
 		}
+
+		loadSharedSettingsConfig(rootHelper);
 	}
 
 	// Audio

@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -20,7 +20,8 @@
 namespace lemon
 {
 
-	Preprocessor::Preprocessor()
+	Preprocessor::Preprocessor(const GlobalCompilerConfig& config) :
+		mConfig(config)
 	{
 	}
 
@@ -251,7 +252,7 @@ namespace lemon
 				case ParserToken::Type::IDENTIFIER:
 				{
 					const std::string& identifier = parserToken.as<IdentifierParserToken>().mIdentifier;
-					
+
 					// Unknown preprocessor definitions are okay, they automatically evaluate to 0
 					tokenList.createBack<ConstantToken>().mValue = (nullptr != mPreprocessorDefinitions) ? mPreprocessorDefinitions->getValue(identifier) : 0;
 					break;
@@ -265,7 +266,8 @@ namespace lemon
 			GlobalsLookup globalsLookup;
 			std::vector<LocalVariable*> localVariables;
 			TokenProcessing::Context tokenProcessingContext(globalsLookup, localVariables, nullptr);
-			TokenProcessing(tokenProcessingContext).processForPreprocessor(tokenList, mLineNumber);
+			TokenProcessing tokenProcessing(tokenProcessingContext, mConfig);
+			tokenProcessing.processForPreprocessor(tokenList, mLineNumber);
 		}
 
 		// Now traverse the tree recursively

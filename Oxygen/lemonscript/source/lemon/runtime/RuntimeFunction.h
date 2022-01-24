@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -30,8 +30,11 @@ namespace lemon
 
 		inline const std::vector<RuntimeOpcode*>& getOpcodePointers() const  { return mOpcodePointers; }
 
+		void clear();
 		void reserveForOpcodes(size_t numOpcodes);
 		RuntimeOpcode& addOpcode(size_t parameterSize);
+
+		void copyFrom(const RuntimeOpcodeBuffer& other);
 
 	public:
 		std::vector<RuntimeOpcode*> mOpcodePointers;	// Direct pointers to runtime opcodes

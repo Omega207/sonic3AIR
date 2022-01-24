@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -14,7 +14,7 @@
 #include "oxygen/drawing/DrawerTexture.h"
 #include "oxygen/helper/FileHelper.h"
 #include "oxygen/helper/HighResolutionTimer.h"
-#include "oxygen/helper/Log.h"
+#include "oxygen/helper/Logging.h"
 #include "oxygen/helper/Profiling.h"
 #include "oxygen/rendering/parts/RenderParts.h"
 #include "oxygen/rendering/RenderResources.h"
@@ -185,7 +185,7 @@ void GameView::initialize()
 
 	const Vec2i& resolution = Configuration::instance().mGameScreen;
 
-	LOG_INFO("Creating game screen texture");
+	RMX_LOG_INFO("Creating game screen texture");
 	EngineMain::instance().getDrawer().createTexture(mFinalGameTexture);
 	mFinalGameTexture.setupAsRenderTarget(resolution.x, resolution.y);
 }
@@ -240,12 +240,12 @@ void GameView::keyboard(const rmx::KeyboardEvent& ev)
 
 					case 'h':
 					{
-						int& frameSync = Configuration::instance().mFrameSync;
-						frameSync = (frameSync + 1) % 3;
+						Configuration::FrameSyncType& frameSync = Configuration::instance().mFrameSync;
+						frameSync = Configuration::FrameSyncType(((int)frameSync + 1) % (int)Configuration::FrameSyncType::_NUM);
 						EngineMain::instance().setVSyncMode(frameSync);
 
-						static const std::string FRAME_SYNC_NAME[] = { "V-Sync Off", "VSync On", "V-Sync + FPS Cap" };
-						setLogDisplay("Frame Sync: " + FRAME_SYNC_NAME[frameSync]);
+						static const std::string FRAME_SYNC_NAME[(int)Configuration::FrameSyncType::_NUM] = { "V-Sync Off", "VSync On", "V-Sync + FPS Cap", "Frame Interpolation" };
+						setLogDisplay("Frame Sync: " + FRAME_SYNC_NAME[(int)frameSync]);
 						break;
 					}
 				}
@@ -389,11 +389,10 @@ void GameView::keyboard(const rmx::KeyboardEvent& ev)
 						case SDLK_F11:
 						{
 							HighResolutionTimer timer;
-							timer.Start();
+							timer.start();
 							if (mSimulation.reloadScripts(true))
 							{
-								timer.Stop();
-								setLogDisplay(String(0, "Reloaded scripts in %0.2f sec", timer.GetCurrentSeconds()));
+								setLogDisplay(String(0, "Reloaded scripts in %0.2f sec", timer.getSecondsSinceStart()));
 							}
 							break;
 						}

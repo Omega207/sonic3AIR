@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -9,7 +9,7 @@
 #pragma once
 
 #include "lemon/program/Variable.h"
-#include "lemon/compiler/Definitions.h"
+#include "lemon/compiler/Operators.h"
 
 
 namespace lemon
@@ -19,6 +19,7 @@ namespace lemon
 	class LocalVariable;
 	class TokenList;
 	class StatementToken;
+	struct GlobalCompilerConfig;
 
 	class TokenProcessing
 	{
@@ -35,17 +36,13 @@ namespace lemon
 		};
 
 	public:
-		static uint8 getOperatorPriority(Operator op);		// Lower values mean higher priority, e.g. multiply is lower than addition
-		static bool isOperatorAssociative(Operator op);
-
-	public:
-		inline TokenProcessing(const Context& context) : mContext(context) {}
+		inline TokenProcessing(const Context& context, const GlobalCompilerConfig& config) : mContext(context), mConfig(config) {}
 
 		void processTokens(TokenList& tokensRoot, uint32 lineNumber, const DataTypeDefinition* resultType = nullptr);
 		void processForPreprocessor(TokenList& tokensRoot, uint32 lineNumber);
 
 	private:
-		void processDefines(TokenList& tokens);
+		void processConstantsAndDefines(TokenList& tokens);
 		void processParentheses(TokenList& tokens, std::vector<TokenList*>& outLinearTokenLists);
 		void processCommaSeparators(std::vector<TokenList*>& linearTokenLists);
 
@@ -65,6 +62,7 @@ namespace lemon
 
 	private:
 		const Context& mContext;
+		const GlobalCompilerConfig& mConfig;
 		uint32 mLineNumber = 0;
 	};
 
