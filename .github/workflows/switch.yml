@@ -2,7 +2,7 @@ name: Nintendo Switch
 
 on:
   push:
-    branches: [ gha-switch ]
+    branches: [ Actions_test-switch ]
 
 jobs:
   build:
@@ -12,6 +12,7 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v1
     - name: make clean
+      continue-on-error: true
       run: make PLATFORM=Switch clean
       working-directory: Oxygen/soncthrickles/build/_make
     - name: make 
