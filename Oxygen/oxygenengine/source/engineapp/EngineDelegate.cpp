@@ -9,7 +9,8 @@ const EngineDelegateInterface::AppMetaData& EngineDelegate::getAppMetaData()
 	if (mAppMetaData.mTitle.empty())
 	{
 		mAppMetaData.mTitle = "Oxygen Engine";
-		mAppMetaData.mBuildVersion = "pre-alpha";
+		mAppMetaData.mBuildVersionString = "0.1.0";		// Oxygen Engine currently doesn't use a version number to take serious in any way...
+		mAppMetaData.mBuildVersionNumber = 0x00010000;
 	}
 	mAppMetaData.mAppDataFolder = L"OxygenEngine";
 	return mAppMetaData;
@@ -114,14 +115,14 @@ Font& EngineDelegate::getDebugFont(int size)
 	{
 		static Font font10;
 		if (font10.getHeight() == 0)
-			font10.load("data/font/freefont_pixeled.json", 0.0f);
+			font10.loadFromFile("data/font/oxyfont_regular.json", 0.0f);
 		return font10;
 	}
 	else
 	{
 		static Font font3;
 		if (font3.getHeight() == 0)
-			font3.load("data/font/smallfont.json", 0.0f);
+			font3.loadFromFile("data/font/smallfont.json", 0.0f);
 		return font3;
 	}
 }

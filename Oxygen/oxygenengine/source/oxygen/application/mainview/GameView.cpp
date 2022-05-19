@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -14,7 +14,7 @@
 #include "oxygen/drawing/DrawerTexture.h"
 #include "oxygen/helper/FileHelper.h"
 #include "oxygen/helper/HighResolutionTimer.h"
-#include "oxygen/helper/Log.h"
+#include "oxygen/helper/Logging.h"
 #include "oxygen/helper/Profiling.h"
 #include "oxygen/rendering/parts/RenderParts.h"
 #include "oxygen/rendering/RenderResources.h"
@@ -185,7 +185,7 @@ void GameView::initialize()
 
 	const Vec2i& resolution = Configuration::instance().mGameScreen;
 
-	LOG_INFO("Creating game screen texture");
+	RMX_LOG_INFO("Creating game screen texture");
 	EngineMain::instance().getDrawer().createTexture(mFinalGameTexture);
 	mFinalGameTexture.setupAsRenderTarget(resolution.x, resolution.y);
 }
@@ -240,12 +240,12 @@ void GameView::keyboard(const rmx::KeyboardEvent& ev)
 
 					case 'h':
 					{
-						int& frameSync = Configuration::instance().mFrameSync;
-						frameSync = (frameSync + 1) % 3;
+						Configuration::FrameSyncType& frameSync = Configuration::instance().mFrameSync;
+						frameSync = Configuration::FrameSyncType(((int)frameSync + 1) % (int)Configuration::FrameSyncType::_NUM);
 						EngineMain::instance().setVSyncMode(frameSync);
 
-						static const std::string FRAME_SYNC_NAME[] = { "V-Sync Off", "VSync On", "V-Sync + FPS Cap" };
-						setLogDisplay("Frame Sync: " + FRAME_SYNC_NAME[frameSync]);
+						static const std::string FRAME_SYNC_NAME[(int)Configuration::FrameSyncType::_NUM] = { "V-Sync Off", "VSync On", "V-Sync + FPS Cap", "Frame Interpolation" };
+						setLogDisplay("Frame Sync: " + FRAME_SYNC_NAME[(int)frameSync]);
 						break;
 					}
 				}
@@ -389,11 +389,10 @@ void GameView::keyboard(const rmx::KeyboardEvent& ev)
 						case SDLK_F11:
 						{
 							HighResolutionTimer timer;
-							timer.Start();
-							if (mSimulation.reloadScripts(true))
+							timer.start();
+							if (mSimulation.triggerFullScriptsReload())
 							{
-								timer.Stop();
-								setLogDisplay(String(0, "Reloaded scripts in %0.2f sec", timer.GetCurrentSeconds()));
+								setLogDisplay(String(0, "Reloaded scripts in %0.2f sec", timer.getSecondsSinceStart()));
 							}
 							break;
 						}
@@ -474,10 +473,18 @@ void GameView::update(float timeElapsed)
 		mFadeValue = saturate(mFadeValue + timeElapsed * mFadeChange);
 	}
 
-	if (mBlurringStillImage && mBlurringTimeout > 0.0f)
+	if (mStillImage.mMode == StillImageMode::BLURRING)
 	{
-		mBlurringTimeout -= timeElapsed;
-		mBlurringStepTimer += timeElapsed;
+		if (mStillImage.mBlurringTimeout > 0.0f)
+		{
+			mStillImage.mBlurringTimeout -= timeElapsed;
+			mStillImage.mBlurringStepTimer += timeElapsed;
+		}
+		if (mStillImage.mBlurringTimeout <= 0.0f)
+		{
+			mStillImage.mBlurringTimeout = 0.0f;
+			mStillImage.mMode = StillImageMode::STILL_IMAGE;
+		}
 	}
 
 	// Debug output
@@ -508,10 +515,11 @@ void GameView::update(float timeElapsed)
 			if (mDebugOutput >= 0)
 			{
 				// Get the mouse position inside the debug output
+				PlaneManager& planeManager = VideoOut::instance().getRenderParts().getPlaneManager();
 				Rectf rect;
 				if (mDebugOutput <= PlaneManager::PLANE_A)
 				{
-					const Vec2i playfieldSize = VideoOut::instance().getRenderParts().getPlaneManager().getPlayfieldSizeInPixels();
+					const Vec2i playfieldSize = planeManager.getPlayfieldSizeInPixels();
 					rect = RenderUtils::getLetterBoxRect(mRect, (float)playfieldSize.x / (float)playfieldSize.y);
 				}
 				else
@@ -526,8 +534,8 @@ void GameView::update(float timeElapsed)
 					LogDisplay::instance().updateScriptLogValue("~index", rmx::hexString(index, 4));
 					if (mDebugOutput < 2)
 					{
-						const uint16 address = VideoOut::instance().getRenderParts().getPlaneManager().getPatternVRAMAddress(mDebugOutput, index);
-						const uint16 pattern = VideoOut::instance().getRenderParts().getPlaneManager().getPatternAtIndex(mDebugOutput, index);
+						const uint16 address = planeManager.getPatternVRAMAddress(mDebugOutput, index);
+						const uint16 pattern = planeManager.getPatternAtIndex(mDebugOutput, index);
 						LogDisplay::instance().updateScriptLogValue("~addr", rmx::hexString(address, 4));
 						LogDisplay::instance().updateScriptLogValue("~ptrn", rmx::hexString(pattern, 4));
 					}
@@ -553,12 +561,12 @@ void GameView::render()
 	mFinalGameTexture.setupAsRenderTarget(gameScreenRect.width, gameScreenRect.height);
 
 	// Refresh simulation output image
-	if (mBlurringStillImage)
+	if (mStillImage.mMode != StillImageMode::NONE)
 	{
-		const constexpr float REDUCTION = 0.0333f;	// Can't remember any more why this is 1/30...
-		if (mBlurringStepTimer >= REDUCTION)
+		const constexpr float REDUCTION = 0.0333f;	// One blur step every 1/30 second
+		if (mStillImage.mBlurringStepTimer >= REDUCTION)
 		{
-			mBlurringStepTimer -= REDUCTION;
+			mStillImage.mBlurringStepTimer -= REDUCTION;
 			videoOut.blurGameScreen();
 		}
 	}
@@ -590,23 +598,21 @@ void GameView::render()
 		drawer.setBlendMode(DrawerBlendMode::ALPHA);
 		drawer.performRendering();
 
-		GuiBase::render();
+		// No "GuiBase::render()" call here, as this would e.g. draw menus on top (and in wrong resolutions)
 		return;
 	}
 
 	// Here goes the real rendering
 	drawer.setRenderTarget(mFinalGameTexture, gameScreenRect);
 	drawer.setBlendMode(DrawerBlendMode::NONE);
-#if 0
-	// Test: Lazy version of a simple mirror mode
-	//  -> TODO: ControlsIn needs to support mirror mode as well
-	if (drawer.getType() != Drawer::Type::SOFTWARE)
+
+	// Simple mirror mode implementation: Just mirror the whole screen
+	if (Configuration::instance().mMirrorMode)
 	{
 		const Recti drawRect(gameScreenRect.x + gameScreenRect.width, gameScreenRect.y, -gameScreenRect.width, gameScreenRect.height);
 		drawer.drawRect(drawRect, videoOut.getGameScreenTexture());
 	}
 	else
-#endif
 	{
 		drawer.drawRect(gameScreenRect, videoOut.getGameScreenTexture());
 	}
@@ -737,27 +743,27 @@ void GameView::setFadedIn()
 {
 	mFadeValue = 1.0f;
 	mFadeChange = 0.0f;
-	setBlurringStillImage(false);
+	setStillImageMode(StillImageMode::NONE);
 }
 
 void GameView::startFadingIn(float fadeTime)
 {
 	mFadeValue = 0.0f;
 	mFadeChange = 1.0f / fadeTime;
-	setBlurringStillImage(false);
+	setStillImageMode(StillImageMode::NONE);
 }
 
 void GameView::startFadingOut(float fadeTime)
 {
 	mFadeChange = -1.0f / fadeTime;
-	setBlurringStillImage(false);
+	setStillImageMode(StillImageMode::NONE);
 }
 
-void GameView::setBlurringStillImage(bool enable, float timeout)
+void GameView::setStillImageMode(StillImageMode mode, float timeout)
 {
-	mBlurringStillImage = enable;
-	mBlurringTimeout = enable ? (timeout == 0.0f ? 3.0f : timeout) : 0.0f;
-	mBlurringStepTimer = 0.0f;
+	mStillImage.mMode = mode;
+	mStillImage.mBlurringTimeout = (mode != StillImageMode::NONE) ? (timeout == 0.0f ? 3.0f : timeout) : 0.0f;
+	mStillImage.mBlurringStepTimer = 0.0f;
 }
 
 void GameView::setLogDisplay(const String& string, float time)

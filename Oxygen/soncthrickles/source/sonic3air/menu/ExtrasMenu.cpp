@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -75,6 +75,17 @@ GameMenuBase::BaseState ExtrasMenu::getBaseState() const
 		case State::FADE_TO_MENU:  return BaseState::FADE_OUT;
 		case State::FADE_TO_GAME:  return BaseState::FADE_OUT;
 		default:				   return BaseState::INACTIVE;
+	}
+}
+
+void ExtrasMenu::setBaseState(BaseState baseState)
+{
+	switch (baseState)
+	{
+		case BaseState::INACTIVE: mState = State::INACTIVE;  break;
+		case BaseState::FADE_IN:  mState = State::APPEAR;  break;
+		case BaseState::SHOW:	  mState = State::SHOW;  break;
+		case BaseState::FADE_OUT: mState = State::FADE_TO_MENU;  break;
 	}
 }
 
@@ -242,7 +253,7 @@ void ExtrasMenu::update(float timeElapsed)
 			else
 			{
 				Tab& tab = mTabs[mActiveTab];
-				const GameMenuEntries::Entry& selectedEntry = tab.mMenuEntries.selected();
+				const GameMenuEntry& selectedEntry = tab.mMenuEntries.selected();
 				if (mActiveTab == 0 &&
 					PlayerProgress::instance().isSecretUnlocked(selectedEntry.mData) &&
 					(selectedEntry.mData == SharedDatabase::Secret::SECRET_COMPETITION_MODE ||
@@ -291,7 +302,7 @@ void ExtrasMenu::update(float timeElapsed)
 		{
 			if (mState == State::FADE_TO_GAME && mActiveTab == 0)
 			{
-				const GameMenuEntries::Entry& selectedEntry = mTabs[mActiveTab].mMenuEntries.selected();
+				const GameMenuEntry& selectedEntry = mTabs[mActiveTab].mMenuEntries.selected();
 				if (PlayerProgress::instance().isSecretUnlocked(selectedEntry.mData))
 				{
 					switch (selectedEntry.mData)
@@ -613,6 +624,7 @@ void ExtrasMenu::startCompetitionMode()
 	// Init simulation
 	Game::instance().startIntoCompetitionMode();
 	GameApp::instance().onStartGame();
+	mMenuBackground->setGameStartedMenu();
 }
 
 void ExtrasMenu::startBlueSphere()
@@ -620,6 +632,7 @@ void ExtrasMenu::startBlueSphere()
 	// Init simulation
 	Game::instance().startIntoBlueSphere();
 	GameApp::instance().onStartGame();
+	mMenuBackground->setGameStartedMenu();
 }
 
 void ExtrasMenu::startLevelSelect()
@@ -627,6 +640,7 @@ void ExtrasMenu::startLevelSelect()
 	// Init simulation
 	Game::instance().startIntoLevelSelect();
 	GameApp::instance().onStartGame();
+	mMenuBackground->setGameStartedMenu();
 }
 
 void ExtrasMenu::goBack()

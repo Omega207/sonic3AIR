@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -350,6 +350,19 @@ void AudioPlayer::stopAllSoundsByChannel(int channelId)
 	}
 }
 
+void AudioPlayer::stopAllSoundsByChannelAndContext(int channelId, int contextId)
+{
+	SoundIterator iterator(mPlayingSounds);
+	iterator.filterChannel(channelId);
+	iterator.filterContext(contextId);
+	while (PlayingSound* soundPtr = iterator.getNext())
+	{
+		// We're not actually stopping the sound, but just fading it out very fast
+		soundPtr->mAudioRef.setVolumeChange(-20.0f);
+		iterator.removeCurrent();
+	}
+}
+
 void AudioPlayer::fadeInChannel(int channelId, float length)
 {
 	SoundIterator iterator(mPlayingSounds);
@@ -454,7 +467,7 @@ void AudioPlayer::resetAudioModifiers()
 	mActiveAudioModifiers.clear();
 }
 
-void AudioPlayer::enableAudioModifier(int channelId, int contextId, const std::string& postfix, float relativeSpeed)
+void AudioPlayer::enableAudioModifier(int channelId, int contextId, std::string_view postfix, float relativeSpeed)
 {
 	// Search for existing modifier to overwrite
 	AudioModifier* existingModifier = findAudioModifier(channelId, contextId);
@@ -503,7 +516,7 @@ AudioPlayer::PlayingSound* AudioPlayer::playAudioInternal(SourceRegistration* so
 	// Stop all old sounds of this channel
 	if (channelId != 0xff && sourceReg->mType != SourceRegistration::Type::EMULATION_CONTINUOUS)
 	{
-		stopAllSoundsByChannel(channelId);
+		stopAllSoundsByChannelAndContext(channelId, contextId);
 	}
 
 	SourceRegistration* baseSourceReg = sourceReg;
@@ -773,13 +786,14 @@ AudioPlayer::AudioModifier* AudioPlayer::findAudioModifier(int channelId, int co
 	return nullptr;
 }
 
-AudioPlayer::SourceRegistration* AudioPlayer::getModifiedSourceRegistration(SourceRegistration& baseSourceReg, const std::string& postfix) const
+AudioPlayer::SourceRegistration* AudioPlayer::getModifiedSourceRegistration(SourceRegistration& baseSourceReg, std::string_view postfix) const
 {
-	const std::string newKeyString = baseSourceReg.mAudioDefinition->mKeyString + postfix;
+	std::string newKeyString = baseSourceReg.mAudioDefinition->mKeyString;
+	newKeyString.append(postfix);	// It would be nice if "std::string + std::string_view" would be supported by the STL
 	return mAudioCollection.getSourceRegistration(rmx::getMurmur2_64(newKeyString), baseSourceReg.mPackage);
 }
 
-void AudioPlayer::applyAudioModifier(int channelId, int contextId, const std::string& postfix, float relativeSpeed, float speedChange)
+void AudioPlayer::applyAudioModifier(int channelId, int contextId, std::string_view postfix, float relativeSpeed, float speedChange)
 {
 	// Audio modifiers have an effect in three places:
 	//  a) New sounds starting use it (gets handled in "playAudio", not here)

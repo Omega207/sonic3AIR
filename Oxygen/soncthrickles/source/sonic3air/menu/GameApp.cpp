@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -18,7 +18,6 @@
 #include "sonic3air/menu/overlays/SkippableCutsceneWindow.h"
 #include "sonic3air/audio/AudioOut.h"
 #include "sonic3air/data/SharedDatabase.h"
-#include "sonic3air/debug/DebugSidePanelAdditions.h"
 #include "sonic3air/Game.h"
 
 #include "oxygen/application/Application.h"
@@ -68,8 +67,6 @@ void GameApp::initialize()
 	// Init shared resources
 	global::loadSharedResources();
 
-	FileHelper::loadTexture(mDisclaimerTexture, L"data/images/menu/disclaimer.png");
-
 	mGameView = &Application::instance().getGameView();
 	Simulation& simulation = Application::instance().getSimulation();
 	simulation.setRunning(false);
@@ -84,16 +81,6 @@ void GameApp::initialize()
 	{
 		mApplicationContextMenu = createChild<ApplicationContextMenu>();
 	}
-
-#ifndef ENDUSER
-	{
-		DebugSidePanel* debugSidePanel = Application::instance().getDebugSidePanel();
-		if (nullptr != debugSidePanel)
-			s3air::registerDebugSidePanelAdditions(*debugSidePanel);
-		else
-			RMX_ERROR("No debug side panel instance found", );
-	}
-#endif
 }
 
 void GameApp::deinitialize()
@@ -132,6 +119,7 @@ void GameApp::update(float timeElapsed)
 		mStateTimeout -= timeElapsed;
 		if (mStateTimeout <= 0.0f)
 		{
+			mDisclaimerTexture.clearBitmap();	// Unload to save on RAM
 			gotoPhase(1);
 		}
 	}
@@ -178,6 +166,12 @@ void GameApp::render()
 
 	if (mCurrentState == State::DISCLAIMER)
 	{
+		// Load disclaimer is not done already
+		if (!mDisclaimerTexture.isValid())
+		{
+			FileHelper::loadTexture(mDisclaimerTexture, L"data/images/menu/disclaimer.png");
+		}
+
 		const Rectf rect = RenderUtils::getLetterBoxRect(FTX::screenRect(), (float)mDisclaimerTexture.getWidth() / (float)mDisclaimerTexture.getHeight());
 		drawer.setBlendMode(DrawerBlendMode::NONE);
 		drawer.setSamplingMode(DrawerSamplingMode::BILINEAR);
@@ -205,63 +199,65 @@ void GameApp::openTitleScreen()
 
 void GameApp::openMainMenu()
 {
-	if (mCurrentState == State::INGAME || mCurrentState == State::TIME_ATTACK_RESULTS)
-	{
-		Application::instance().getSimulation().setRunning(false);
-		AudioOut::instance().stopSoundContext(AudioOut::CONTEXT_INGAME + AudioOut::CONTEXT_MUSIC);
-		AudioOut::instance().stopSoundContext(AudioOut::CONTEXT_INGAME + AudioOut::CONTEXT_SOUND);
-	}
+	Application::instance().getSimulation().setRunning(false);
+	AudioOut::instance().stopSoundContext(AudioOut::CONTEXT_INGAME + AudioOut::CONTEXT_MUSIC);
+	AudioOut::instance().stopSoundContext(AudioOut::CONTEXT_INGAME + AudioOut::CONTEXT_SOUND);
 
 	if (mPauseMenu->getParent() == mGameView)
 		mGameView->removeChild(mPauseMenu);
 	if (mTimeAttackResultsMenu->getParent() == mGameView)
 		mGameView->removeChild(mTimeAttackResultsMenu);
 
-	// Coming from the title screen? (Especially after Game Over or when game was completed)
-	const bool enforceOpenMainMenu = (mCurrentState == State::INGAME && Game::instance().getCurrentMode() == Game::Mode::TITLE_SCREEN);
-
 	mCurrentState = State::MAIN_MENU;
 	mGameView->addChild(mMenuBackground);
 	mGameView->startFadingIn();
 
-	if (enforceOpenMainMenu)
-	{
-		mGameMenuManager->forceRemoveAll();
-		mMenuBackground->openMainMenu();
-	}
+	mGameMenuManager->forceRemoveAll();
+	mMenuBackground->openGameStartedMenu();
 
 	Game::instance().setCurrentMode(Game::Mode::UNDEFINED);		// Needed for Discord integration
 }
 
-void GameApp::openOptionsMenu(bool noBackgroundAnimation)
+void GameApp::openOptionsMenuInGame()
 {
 	mCurrentState = State::INGAME_OPTIONS;
 
 	mPauseMenu->setEnabled(false);
 	mGameView->addChild(mMenuBackground);
 	mGameView->startFadingIn();
-	mMenuBackground->openOptions(noBackgroundAnimation);
+	mMenuBackground->openOptions(true);
 }
 
 void GameApp::onExitOptions()
 {
-	// Coming from in-game options, then just go back into the game
 	if (mCurrentState == State::INGAME_OPTIONS)
 	{
+		// Only start fading to black - see "onFadedOutOptions" for the actual change of state after complete fade-out
+		GameApp::instance().getGameView().startFadingOut(0.1666f);
+	}
+	else
+	{
+		mMenuBackground->openMainMenu();
+	}
+}
+
+void GameApp::onFadedOutOptions()
+{
+	if (mCurrentState == State::INGAME_OPTIONS)
+	{
+		// Coming from in-game options, then go back into the game
 		if (mMenuBackground->getParent() == mGameView)
 			mGameView->removeChild(mMenuBackground);
 
 		mPauseMenu->setEnabled(true);
 		mPauseMenu->onReturnFromOptions();
 
+		GameApp::instance().getGameView().startFadingIn(0.1f);
+
 		// TODO: Fade out the context instead
 		AudioOut::instance().stopSoundContext(AudioOut::CONTEXT_MENU + AudioOut::CONTEXT_MUSIC);
 
 		mCurrentState = State::INGAME;
-	}
-	else
-	{
-		mMenuBackground->openMainMenu();
 	}
 }
 
@@ -324,7 +320,7 @@ void GameApp::showTimeAttackResults(int hundreds, const std::vector<int>& otherT
 
 void GameApp::enableStillImageBlur(bool enable, float timeout)
 {
-	mGameView->setBlurringStillImage(enable, timeout);
+	mGameView->setStillImageMode(enable ? GameView::StillImageMode::BLURRING : GameView::StillImageMode::NONE, timeout);
 }
 
 void GameApp::showUnlockedWindow(SecretUnlockedWindow::EntryType entryType, const std::string& title, const std::string& content)
@@ -371,11 +367,7 @@ void GameApp::gotoPhase(int phaseNumber)
 		{
 			// Start with the intro & title screen
 			mCurrentState = State::TITLE_SCREEN;
-			Game::instance().setCurrentMode(Game::Mode::TITLE_SCREEN);
-			Simulation& simulation = Application::instance().getSimulation();
-			simulation.resetState();
-			simulation.setRunning(true);
-			simulation.setSpeed(simulation.getDefaultSpeed());
+			Game::instance().startIntoTitleScreen();
 			break;
 		}
 

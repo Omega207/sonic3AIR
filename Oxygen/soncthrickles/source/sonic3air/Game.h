@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,10 +8,12 @@
 
 #pragma once
 
-#include "oxygen/resources/ResourcesCache.h"
-#include "sonic3air/helper/BlueSpheresRendering.h"
+#include "sonic3air/client/GameClient.h"
 #include "sonic3air/data/PlayerProgress.h"
 #include "sonic3air/data/PlayerRecorder.h"
+#include "sonic3air/helper/BlueSpheresRendering.h"
+
+#include "oxygen/resources/ResourcesCache.h"
 
 namespace lemon
 {
@@ -30,7 +32,8 @@ public:
 		ACT_SELECT,		// Act Select mode
 		TIME_ATTACK,	// Time Attack mode
 		COMPETITION,	// Competition mode
-		BLUE_SPHERE		// Blue Sphere game mode
+		BLUE_SPHERE,	// Blue Sphere game mode
+		MAIN_MENU_BG	// Main menu background
 	};
 
 public:
@@ -47,6 +50,7 @@ public:
 
 	void checkForUnlockedSecrets();
 
+	void startIntoTitleScreen();
 	void startIntoDataSelect();
 	void startIntoLevel(Mode mode, uint32 submode, uint16 zoneAndAct, uint8 characters);
 	void restartLevel();
@@ -55,6 +59,7 @@ public:
 	void startIntoCompetitionMode();
 	void startIntoBlueSphere();
 	void startIntoLevelSelect();
+	void startIntoMainMenuBG();
 
 	void onPreUpdateFrame();
 	void onPostUpdateFrame();
@@ -62,14 +67,13 @@ public:
 
 	void updateSpecialInput(float timeElapsed);
 
-	void enableGamePauseByApplication();
-
 	inline Mode getCurrentMode() const			{ return mMode; }
 	inline void setCurrentMode(Mode mode)		{ mMode = mode; }
 
 	inline bool isTimeAttackMode() const		{ return mMode == Mode::TIME_ATTACK; }
 	inline PlayerRecorder& getPlayerRecorder()	{ return mPlayerRecorder; }
 
+	bool shouldPauseOnFocusLoss() const;
 	bool isDebugModeActive() const;
 
 	void fillDebugVisualization(Bitmap& bitmap, int& mode);
@@ -122,9 +126,10 @@ private:
 	BlueSpheresRendering mBlueSpheresRendering;
 	PlayerProgress mPlayerProgress;
 	PlayerRecorder mPlayerRecorder;
+	GameClient mGameClient;
 
-	uint16 mLastZoneAndAct;
-	uint8  mLastCharacters;
+	uint16 mLastZoneAndAct = 0;
+	uint8  mLastCharacters = 0;
 
 	bool mReceivedTimeAttackFinished = false;
 	bool mReturnToMenuTriggered = false;

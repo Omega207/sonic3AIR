@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -40,8 +40,9 @@ public:
 	{
 		std::string  mTitle;
 		std::wstring mIconFile;
-		int			 mWindowsIconResource;
-		std::string	 mBuildVersion;
+		int			 mWindowsIconResource = 0;
+		std::string	 mBuildVersionString;
+		uint32		 mBuildVersionNumber;
 		std::wstring mAppDataFolder;
 	};
 
@@ -102,7 +103,7 @@ public:
 
 	uint32 getPlatformFlags() const;
 	void switchToRenderMethod(Configuration::RenderMethod newRenderMethod);
-	void setVSyncMode(int mode);
+	void setVSyncMode(Configuration::FrameSyncType frameSyncMode);
 
 private:
 	bool startupEngine();

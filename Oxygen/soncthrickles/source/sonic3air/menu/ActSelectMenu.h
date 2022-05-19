@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -20,6 +20,7 @@ public:
 	~ActSelectMenu();
 
 	virtual BaseState getBaseState() const override;
+	virtual void setBaseState(BaseState baseState) override;
 	virtual void onFadeIn() override;
 	virtual bool canBeRemoved() override;
 
@@ -48,9 +49,9 @@ private:
 	MenuBackground* mMenuBackground = nullptr;
 
 	GameMenuEntries mMenuEntries;
-	GameMenuEntries::Entry* mZoneEntry = nullptr;
-	GameMenuEntries::Entry* mActEntry = nullptr;
-	GameMenuEntries::Entry* mCharacterEntry = nullptr;
+	GameMenuEntry* mZoneEntry = nullptr;
+	GameMenuEntry* mActEntry = nullptr;
+	GameMenuEntry* mCharacterEntry = nullptr;
 
 	State mState = State::INACTIVE;
 	float mVisibility = 0.0f;

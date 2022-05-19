@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -43,6 +43,17 @@ GameMenuBase::BaseState PauseMenu::getBaseState() const
 	}
 }
 
+void PauseMenu::setBaseState(BaseState baseState)
+{
+	switch (baseState)
+	{
+		case BaseState::INACTIVE: mState = State::INACTIVE;  break;
+		case BaseState::FADE_IN:  mState = State::APPEAR;  break;
+		case BaseState::SHOW:	  mState = State::SHOW;  break;
+		case BaseState::FADE_OUT: mState = State::DISAPPEAR_RESUME;  break;
+	}
+}
+
 void PauseMenu::onFadeIn()
 {
 	mState = State::APPEAR;
@@ -58,9 +69,10 @@ void PauseMenu::onFadeIn()
 		mMenuEntries.clear();
 		mMenuEntries.reserve(3);
 		mMenuEntries.addEntry("Continue", 0);
+		if (Game::instance().getCurrentMode() != Game::Mode::TIME_ATTACK)
+			mMenuEntries.addEntry("Options", 1);
 		if (mRestartEnabled)
-			mMenuEntries.addEntry("Restart", 1);
-		//mMenuEntries.addEntry("Options", 2);	// Not ready yet
+			mMenuEntries.addEntry("Restart", 2);
 		mMenuEntries.addEntry("Exit Game", 3);
 	}
 	mMenuEntries.mSelectedEntryIndex = 0;
@@ -123,6 +135,13 @@ void PauseMenu::update(float timeElapsed)
 
 					case 1:
 					{
+						// Open options menu
+						GameApp::instance().openOptionsMenuInGame();
+						break;
+					}
+
+					case 2:
+					{
 						// Restart
 						if (Game::instance().isTimeAttackMode())
 						{
@@ -140,13 +159,6 @@ void PauseMenu::update(float timeElapsed)
 							mDialogEntries.addEntry("Restart act", 0x11);
 							mDialogEntries.mSelectedEntryIndex = 0;
 						}
-						break;
-					}
-
-					case 2:
-					{
-						// Open options menu
-						GameApp::instance().openOptionsMenu(true);
 						break;
 					}
 
@@ -280,7 +292,7 @@ void PauseMenu::render()
 		{
 			const constexpr int LINE_HEIGHT = 15;
 
-			int px = screenWidth - 194 + roundToInt((1.0f - mDialogVisibility) * 80.0f) - (int)mMenuEntries.size() * 9;
+			int px = screenWidth - 191 + roundToInt((1.0f - mDialogVisibility) * 80.0f) - (int)mMenuEntries.size() * 9;
 			int py = screenHeight - 1 - (int)mDialogEntries.size() * LINE_HEIGHT;
 
 			if (mDialogEntries.size() <= 2)
@@ -312,7 +324,7 @@ void PauseMenu::render()
 
 		// Actual pause menu (upper & lower part)
 		{
-			const constexpr int LINE_HEIGHT = 28;
+			const constexpr int LINE_HEIGHT = 26;
 			const int rightAnchor = screenWidth + roundToInt((1.0f - mVisibility) * 160.0f);
 
 			Recti rect = Recti(rightAnchor - global::mPauseScreenUpperBG.getWidth(), 0, global::mPauseScreenUpperBG.getWidth(), global::mPauseScreenUpperBG.getHeight());

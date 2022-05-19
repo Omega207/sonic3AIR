@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -203,7 +203,7 @@ const SpriteCache::CacheItem* SpriteCache::getSprite(uint64 key)
 	{
 		if (EngineMain::getDelegate().useDeveloperFeatures())
 		{
-			const std::string* str = LemonScriptRuntime::tryResolveStringHash(key);
+			const std::string_view* str = LemonScriptRuntime::tryResolveStringHash(key);
 			if (nullptr != str)
 			{
 				RMX_ERROR("Invalid cache key with string '" << *str << "' (hash is " << rmx::hexString(key) << ")", );
@@ -288,7 +288,7 @@ SpriteDump& SpriteCache::getSpriteDump()
 	return *mSpriteDump;
 }
 
-void SpriteCache::dumpSprite(uint64 key, const std::string& categoryKey, uint8 spriteNumber, uint8 atex)
+void SpriteCache::dumpSprite(uint64 key, std::string_view categoryKey, uint8 spriteNumber, uint8 atex)
 {
 	const auto it = mCachedSprites.find(key);
 	if (it != mCachedSprites.end())
@@ -477,8 +477,6 @@ void SpriteCache::loadSpriteDefinitions(const std::wstring& path)
 					}
 					item.mSprite->mOffset = -center;
 				}
-
-				RMX_CHECK(success, "Failed to load sprite from '" << *WString(fullpath).toString() << "'", continue);
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 /*
 	This script file is part of the Sonic 3 A.I.R. script software distribution.
-	Copyright (C) 2017-2021 by Eukaryot
+	Copyright (C) 2017-2022 by Eukaryot
 
 	Published under the GNU GPLv3 open source software license, see license.txt
 	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -492,7 +492,7 @@ function void copyRectToVRAM(u32 source, u16 vramAddress, u16 width, u16 height)
 //# address-hook(0x001506) end(0x001524)
 function void fn001506()
 {
-	// Seems to be used only in Data Select
+	// This is used to draw the frames and the disabled slot image background (static noise or "New") in Data Select
 	u16 vramAddress = VDPHelper.getVRAMAddressFromWriteCode(D0)
 	u16 bytesPerLine = (D1.u16 + 1) * 2
 

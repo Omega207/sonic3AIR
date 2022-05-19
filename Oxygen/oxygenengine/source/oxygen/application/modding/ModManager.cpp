@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -12,7 +12,8 @@
 #include "oxygen/application/EngineMain.h"
 #include "oxygen/file/ZipFileProvider.h"
 #include "oxygen/helper/JsonHelper.h"
-#include "oxygen/helper/Log.h"
+#include "oxygen/helper/Logging.h"
+#include "oxygen/helper/Utils.h"
 
 
 namespace detail
@@ -233,9 +234,10 @@ bool ModManager::scanMods()
 				Json::Value value = metadataJson["GameVersion"];
 				if (value.isString())
 				{
-					if (value.asString() > EngineMain::getDelegate().getAppMetaData().mBuildVersion)
+					const uint32 versionNumber = utils::getVersionNumberFromString(value.asString());
+					if (versionNumber != 0 && versionNumber > EngineMain::getDelegate().getAppMetaData().mBuildVersionNumber)
 					{
-						errorMessage = "Mod '" + name + "' requires newer game version " + value.asString().c_str();
+						errorMessage = "Mod '" + name + "' requires newer game version v" + utils::getVersionStringFromNumber(versionNumber);
 					}
 				}
 			}
@@ -250,7 +252,7 @@ bool ModManager::scanMods()
 			Mod* mod = it->second;
 			mod->mDirty = false;
 
-			// TODO: Check if mod got changed since last scan 
+			// TODO: Check if mod got changed since last scan
 			//  -> Having a different modification date of "mod.json" should be a good enough lightweight test
 			//  -> If changed, reload mod; and if it's active, reload content as well
 
@@ -270,7 +272,7 @@ bool ModManager::scanMods()
 
 			if (errorMessage.empty())
 			{
-				LOG_INFO("Found mod: '" << name << "'");
+				RMX_LOG_INFO("Found mod: '" << name << "'");
 				mod->mState = Mod::State::INACTIVE;
 
 				// Load mod meta data from JSON
@@ -278,7 +280,7 @@ bool ModManager::scanMods()
 			}
 			else
 			{
-				LOG_INFO("Could not load mod: '" << name << "'");
+				RMX_LOG_INFO("Could not load mod: '" << name << "'");
 				mod->mState = Mod::State::FAILED;
 				mod->mFailedMessage = errorMessage;
 			}
@@ -320,7 +322,7 @@ bool ModManager::scanMods()
 	}
 
 	// Sort mod list
-	std::sort(mAllMods.begin(), mAllMods.end(), &detail::CompareMods); 
+	std::sort(mAllMods.begin(), mAllMods.end(), &detail::CompareMods);
 
 	return anyChange;
 }
@@ -400,13 +402,13 @@ bool ModManager::processModZipFile(const std::wstring& zipLocalPath)
 		mZipFileProviders[zipLocalPath] = provider;
 
 		// Done
-		LOG_INFO("Loaded mod zip file: " << WString(zipLocalPath).toStdString());
+		RMX_LOG_INFO("Loaded mod zip file: " << WString(zipLocalPath).toStdString());
 		return true;
 	}
 	else
 	{
 		// Failure
-		LOG_INFO("Failed to load mod zip file: " << WString(zipLocalPath).toStdString());
+		RMX_LOG_INFO("Failed to load mod zip file: " << WString(zipLocalPath).toStdString());
 		delete provider;
 		return false;
 	}
@@ -418,6 +420,15 @@ void ModManager::onActiveModsChanged(bool duringStartup)
 	for (size_t index = 0; index < mActiveMods.size(); ++index)
 	{
 		mActiveMods[index]->mActivePriority = (uint32)index;
+	}
+
+	// Rebuild lookup map
+	mActiveModsByNameHash.clear();
+	for (Mod* mod : mActiveMods)
+	{
+		mActiveModsByNameHash.emplace(rmx::getMurmur2_64(mod->mName), mod);
+		if (mod->mDisplayName != mod->mName)
+			mActiveModsByNameHash.emplace(rmx::getMurmur2_64(mod->mDisplayName), mod);
 	}
 
 	if (!duringStartup)		// Not needed during startup, as the engine performs the necessary loading steps anyways afterwards

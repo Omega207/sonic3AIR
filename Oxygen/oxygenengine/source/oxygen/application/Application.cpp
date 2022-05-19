@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -29,7 +29,7 @@
 #include "oxygen/application/overlays/TouchControlsOverlay.h"
 #include "oxygen/application/video/VideoOut.h"
 #include "oxygen/base/PlatformFunctions.h"
-#include "oxygen/helper/Log.h"
+#include "oxygen/helper/Logging.h"
 #include "oxygen/helper/Profiling.h"
 #include "oxygen/simulation/LogDisplay.h"
 #include "oxygen/simulation/Simulation.h"
@@ -55,6 +55,8 @@ Application::Application() :
 	Profiling::registerRegion(ProfilingRegion::AUDIO,				 "Audio",		Color::RED);
 	Profiling::registerRegion(ProfilingRegion::RENDERING,			 "Rendering",	Color::BLUE);
 	Profiling::registerRegion(ProfilingRegion::FRAMESYNC,			 "Frame Sync",	Color(0.3f, 0.3f, 0.3f));
+
+	mApplicationTimer.start();
 }
 
 Application::~Application()
@@ -73,7 +75,7 @@ void Application::initialize()
 
 	if (nullptr == mGameView)
 	{
-		LOG_INFO("Adding game view");
+		RMX_LOG_INFO("Adding game view");
 		mGameView = new GameView(*mSimulation);
 		addChild(mGameView);
 		mBackdropView = createChild<BackdropView>();
@@ -83,7 +85,7 @@ void Application::initialize()
 
 	if (EngineMain::getDelegate().useDeveloperFeatures())
 	{
-		LOG_INFO("Adding debug views");
+		RMX_LOG_INFO("Adding debug views");
 		mDebugSidePanel = createChild<DebugSidePanel>();
 		createChild<MemoryHexView>();
 		createChild<DebugLogView>();
@@ -103,13 +105,13 @@ void Application::initialize()
 	mLogDisplayFont.setSize(15.0f);
 	mLogDisplayFont.setShadow(true);
 
-	LOG_INFO("Application initialization complete");
+	RMX_LOG_INFO("Application initialization complete");
 }
 
 void Application::deinitialize()
 {
-	LOG_INFO("");
-	LOG_INFO("--- SHUTDOWN ---");
+	RMX_LOG_INFO("");
+	RMX_LOG_INFO("--- SHUTDOWN ---");
 
 	// Remove all children, as they must not get deleted automatically (which would be the case if they stay added as children)
 	while (!mChildren.empty())
@@ -131,7 +133,7 @@ void Application::sdlEvent(const SDL_Event& ev)
 {
 	GuiBase::sdlEvent(ev);
 
-	//LOG_INFO("SDL event: type = " << ev.type);
+	//RMX_LOG_INFO("SDL event: type = " << ev.type);
 
 	// Inform input manager as well
 	if (ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP)		// TODO: Also add joystick events?
@@ -193,7 +195,16 @@ void Application::sdlEvent(const SDL_Event& ev)
 void Application::keyboard(const rmx::KeyboardEvent& ev)
 {
 	// Debug only
-	//LOG_INFO(*String(0, "Keyboard event: key=0x%08x, scancode=0x%04x", ev.key, ev.scancode));
+	//RMX_LOG_INFO(*String(0, "Keyboard event: key=0x%08x, scancode=0x%04x", ev.key, ev.scancode));
+
+	if (mPausedByFocusLoss)
+	{
+		if (ev.state)
+		{
+			setPausedByFocusLoss(false);
+		}
+		return;
+	}
 
 	GuiBase::keyboard(ev);
 
@@ -387,7 +398,7 @@ void Application::update(float timeElapsed)
 {
 	if (mIsVeryFirstFrameForLogging)
 	{
-		LOG_INFO("Start of first application update call");
+		RMX_LOG_INFO("Start of first application update call");
 	}
 
 	// Global slow motion for debugging menu transitions etc.
@@ -421,6 +432,17 @@ void Application::update(float timeElapsed)
 
 	// Update input
 	InputManager::instance().updateInput(timeElapsed);
+
+	if (mPausedByFocusLoss)
+	{
+		if (InputManager::instance().anythingPressed())
+		{
+			setPausedByFocusLoss(false);
+		}
+
+		// Skip the rest
+		return;
+	}
 
 	// Update simulation
 	Profiling::pushRegion(ProfilingRegion::SIMULATION);
@@ -469,7 +491,7 @@ void Application::update(float timeElapsed)
 
 	if (mIsVeryFirstFrameForLogging)
 	{
-		LOG_INFO("End of first application render call");
+		RMX_LOG_INFO("End of first application render call");
 	}
 }
 
@@ -479,7 +501,7 @@ void Application::render()
 
 	if (mIsVeryFirstFrameForLogging)
 	{
-		LOG_INFO("Start of first application render call");
+		RMX_LOG_INFO("Start of first application render call");
 	}
 
 	Drawer& drawer = EngineMain::instance().getDrawer();
@@ -517,6 +539,16 @@ void Application::render()
 		}
 	}
 
+	if (mPausedByFocusLoss)
+	{
+		drawer.drawRect(FTX::screenRect(), Color(0.0f, 0.0f, 0.0f, 0.8f));
+	#if defined(PLATFORM_ANDROID) || defined(PLATFORM_WEB)
+		drawer.printText(mLogDisplayFont, FTX::screenRect(), "Tap to continue", 5, Color(0.2f, 1.0f, 1.0f));
+	#else
+		drawer.printText(mLogDisplayFont, FTX::screenRect(), "Press any key to continue", 5, Color(0.2f, 1.0f, 1.0f));
+	#endif
+	}
+
 	drawer.performRendering();
 
 	// Needed only for precise profiling
@@ -528,33 +560,36 @@ void Application::render()
 	{
 		Profiling::pushRegion(ProfilingRegion::FRAMESYNC);
 
-		const float tickLengthMilliseconds = 1000.0f / mSimulation->getSimulationFrequency();
-		const bool usingFramecap = (drawer.getType() != Drawer::Type::OPENGL || Configuration::instance().mFrameSync != 1);
-		int delay = 0;
+		const double currentTime = mApplicationTimer.getSecondsSinceStart() * 1000.0;
+		const double tickLengthMilliseconds = 1000.0 / (double)mSimulation->getSimulationFrequency();
+		const bool usingFramecap = (drawer.getType() != Drawer::Type::OPENGL || Configuration::instance().mFrameSync != Configuration::FrameSyncType::VSYNC_ON) && (Configuration::instance().mFrameSync != Configuration::FrameSyncType::FRAME_INTERPOLATION);
 		if (usingFramecap)
 		{
-			const uint32 currentTicks = SDL_GetTicks();
-			delay = (int)mNextRefreshTicks - currentTicks;
-			if (delay < 0 || delay > (int)std::ceil(tickLengthMilliseconds))
+			double delay = mNextRefreshTime - currentTime;
+			if (delay < 0.0 || delay > tickLengthMilliseconds)
 			{
-				mNextRefreshTicks = (float)currentTicks + tickLengthMilliseconds;
+				// No delay in these cases
+				mNextRefreshTime = currentTime + tickLengthMilliseconds;
 			}
 			else
 			{
-				mNextRefreshTicks += tickLengthMilliseconds;
+				mNextRefreshTime += tickLengthMilliseconds;
+				PlatformFunctions::preciseDelay(delay);
 			}
 		}
 		else
 		{
-			// This should not be necessary if VSync is *really* on
-			delay = 3 - (int)((float)Profiling::getRootRegion().mTimer.GetCurrentSeconds() * 1000.0f);
+			// Rely on V-Sync, but still use a minimum delay in case it's off
+			double delay = tickLengthMilliseconds - Profiling::getRootRegion().mTimer.getAccumulatedSeconds() * 1000.0;
+			if (delay >= 1.0)
+			{
+				SDL_Delay(1);	// No precise timing should be needed here
+			}
 		}
-		if (delay > 0 && delay <= (int)std::ceil(tickLengthMilliseconds))
-			SDL_Delay(delay);
 
 		if (mIsVeryFirstFrameForLogging)
 		{
-			LOG_INFO("First present screen call");
+			RMX_LOG_INFO("First present screen call");
 		}
 
 		drawer.presentScreen();
@@ -578,8 +613,8 @@ void Application::render()
 
 	if (mIsVeryFirstFrameForLogging)
 	{
-		LOG_INFO("End of first application render call");
-		LOG_INFO("Ready to go");
+		RMX_LOG_INFO("End of first application render call");
+		RMX_LOG_INFO("Ready to go");
 		mIsVeryFirstFrameForLogging = false;
 	}
 }
@@ -687,6 +722,11 @@ void Application::toggleFullscreen()
 	}
 }
 
+void Application::enablePauseOnFocusLoss()
+{
+	setPausedByFocusLoss(true);
+}
+
 bool Application::hasKeyboard() const
 {
 #if defined(PLATFORM_WINDOWS) || defined(PLATFORM_MAC) || defined(PLATFORM_LINUX)
@@ -767,12 +807,19 @@ bool Application::updateLoading()
 			case GameLoader::UpdateResult::SUCCESS:
 			{
 				// The simulation startup may fail, and this should lead to the application not starting at all
-				LOG_INFO("Simulation startup");
+				RMX_LOG_INFO("Simulation startup");
 				if (!mSimulation->startup())
 				{
-					LOG_INFO("Simulation startup failed");
+					RMX_LOG_INFO("Simulation startup failed");
 
 					// TODO: Handle this better
+					FTX::System->quit();
+					return false;
+				}
+
+				// If the application was only started to e.g. perform nativization, then exit now
+				if (Configuration::instance().mExitAfterScriptLoading)
+				{
 					FTX::System->quit();
 					return false;
 				}
@@ -780,7 +827,7 @@ bool Application::updateLoading()
 				// Startup game
 				EngineMain::getDelegate().startupGame();
 
-				LOG_INFO("Adding game app instance");
+				RMX_LOG_INFO("Adding game app instance");
 				mGameApp = &EngineMain::getDelegate().createGameApp();
 				addChild(mGameApp);
 				break;
@@ -802,4 +849,13 @@ bool Application::updateLoading()
 			break;
 	}
 	return true;
+}
+
+void Application::setPausedByFocusLoss(bool enable)
+{
+	if (mPausedByFocusLoss != enable)
+	{
+		mPausedByFocusLoss = enable;
+		mSimulation->setRunning(!enable);
+	}
 }

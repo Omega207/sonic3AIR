@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -22,6 +22,7 @@ public:
 	~OptionsMenu();
 
 	virtual BaseState getBaseState() const override;
+	virtual void setBaseState(BaseState baseState) override;
 	virtual void onFadeIn() override;
 	virtual bool canBeRemoved() override;
 
@@ -31,8 +32,10 @@ public:
 	virtual void update(float timeElapsed) override;
 	virtual void render() override;
 
-	void onEnteredFromIngame();
+	void setupOptionsMenu(bool enteredFromIngame);
 	void removeControllerSetupMenu();
+
+	const AudioCollection::AudioDefinition* getSoundTestAudioDefinition(uint32 index) const;
 
 private:
 	enum class State
@@ -40,14 +43,15 @@ private:
 		INACTIVE,
 		APPEAR,
 		SHOW,
-		FADE_TO_MENU
+		FADE_TO_MENU,
+		FADE_TO_GAME
 	};
 
 private:
 	void setupOptionEntry(option::Option optionId, SharedDatabase::Setting::Type setting);
 	void setupOptionEntryBitmask(option::Option optionId, SharedDatabase::Setting::Type setting);
-	void setupOptionEntryBool(option::Option optionId, bool* valuePointer);
 	void setupOptionEntryInt(option::Option optionId, int* valuePointer);
+	void setupOptionEntryEnum8(option::Option optionId, void* valuePointer);
 	void setupOptionEntryPercent(option::Option optionId, float* valuePointer);
 
 	void playSoundtest(const AudioCollection::AudioDefinition& audioDefinition);
@@ -65,19 +69,16 @@ private:
 		enum Id
 		{
 			MODS	 = 0,
-			DISPLAY	 = 1,
-			AUDIO	 = 2,
-			VISUALS	 = 3,
-			GAMEPLAY = 4,
-			CONTROLS = 5,
-			TWEAKS	 = 6,
-			INFO	 = 7,
+			SYSTEM	 = 1,
+			DISPLAY	 = 2,
+			AUDIO	 = 3,
+			VISUALS	 = 4,
+			GAMEPLAY = 5,
+			CONTROLS = 6,
+			TWEAKS	 = 7,
 			_NUM
 		};
-
 		GameMenuEntries mMenuEntries;
-		std::map<size_t, std::string> mSections;
-		std::map<size_t, std::string> mTitles;
 	};
 	Tab mTabs[Tab::Id::_NUM];
 	size_t mActiveTab = 0;
@@ -85,8 +86,8 @@ private:
 	GameMenuEntries* mActiveMenu = &mTabMenuEntries;
 
 	std::vector<OptionEntry> mOptionEntries;
-	std::vector<GameMenuEntries::Entry*> mUnlockedSecretsEntries[2];
-	GameMenuEntries::Entry* mGamepadAssignmentEntries[2] = { nullptr };
+	std::vector<GameMenuEntry*> mUnlockedSecretsEntries[2];
+	GameMenuEntry* mGamepadAssignmentEntries[2] = { nullptr };
 
 	uint32 mLastGamepadsChangeCounter = 0;
 	std::vector<const AudioCollection::AudioDefinition*> mSoundTestAudioDefinitions;
@@ -95,4 +96,11 @@ private:
 	State mState = State::INACTIVE;
 	float mVisibility = 0.0f;
 	GameMenuScrolling mScrolling;
+
+	bool mEnteredFromIngame = false;
+	float mWarningMessageTimeout = 0.0f;
+	float mAudioWarningMessageTimeout = 0.0f;
+	bool mShowedAudioWarningMessage = false;
+
+	bool mHasAnyModOptions = false;
 };

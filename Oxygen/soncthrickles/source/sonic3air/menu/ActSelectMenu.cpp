@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -35,7 +35,7 @@ ActSelectMenu::ActSelectMenu(MenuBackground& menuBackground) :
 		for (size_t zoneIndex = 0; zoneIndex < zones.size(); ++zoneIndex)
 		{
 			const SharedDatabase::Zone& zone = zones[zoneIndex];
-			const int acts = zone.mActsFreeRoam;
+			const int acts = zone.mActsNormal;
 			if (acts > 0)
 			{
 				uint16 zoneId = zone.mInternalIndex << 8;
@@ -83,6 +83,17 @@ GameMenuBase::BaseState ActSelectMenu::getBaseState() const
 		case State::FADE_TO_MENU:  return BaseState::FADE_OUT;
 		case State::FADE_TO_GAME:  return BaseState::FADE_OUT;
 		default:				   return BaseState::INACTIVE;
+	}
+}
+
+void ActSelectMenu::setBaseState(BaseState baseState)
+{
+	switch (baseState)
+	{
+		case BaseState::INACTIVE: mState = State::INACTIVE;  break;
+		case BaseState::FADE_IN:  mState = State::APPEAR;  break;
+		case BaseState::SHOW:	  mState = State::SHOW;  break;
+		case BaseState::FADE_OUT: mState = State::FADE_TO_MENU;  break;
 	}
 }
 
@@ -305,6 +316,7 @@ void ActSelectMenu::startGame()
 	// Init simulation
 	Game::instance().startIntoLevel(Game::Mode::ACT_SELECT, 0, mActEntry->selected().mValue, (uint8)mCharacterEntry->selected().mValue);
 	GameApp::instance().onStartGame();
+	mMenuBackground->setGameStartedMenu();
 
 	mMenuEntries.mSelectedEntryIndex = 0;
 }

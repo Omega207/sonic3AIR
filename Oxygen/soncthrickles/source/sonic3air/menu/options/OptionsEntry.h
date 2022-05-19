@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -76,6 +76,7 @@ namespace option
 		LBZ_BIGARMS,
 		SOZ_GHOSTSPAWN,
 		LRZ2_BOSS,
+		MAINTAIN_SHIELDS,
 		TIMEATTACK_GHOSTS,
 		TIMEATTACK_INSTANTRESTART,
 
@@ -110,6 +111,9 @@ namespace option
 		SPECIAL_STAGE_REPEAT,
 		REGION,
 
+		_CHECK_FOR_UPDATE,
+		RELEASE_CHANNEL,
+		_OPEN_HOMEPAGE,
 		_OPEN_MANUAL,
 		_BACK,
 		_NUM
@@ -126,6 +130,7 @@ public:
 		SETTING,			// Bound to a setting in SharedDatabase
 		SETTING_BITMASK,	// Same as above, but treat values as bitmasks
 		CONFIG_INT,			// Bound to an int value
+		CONFIG_ENUM_8,		// Bound to an enum value with uint8 size
 		CONFIG_PERCENT,		// Bound to a float value in 0.0f...1.0f represented by percent values 0...100 in the game menu entry
 		MOD_SETTING			// Bound to a mod setting
 	};
@@ -136,7 +141,7 @@ public:
 
 public:
 	option::Option mOptionId = option::_NUM;
-	GameMenuEntries::Entry* mGameMenuEntry = nullptr;
+	GameMenuEntry* mGameMenuEntry = nullptr;
 
 	Type mType = Type::UNDEFINED;
 	SharedDatabase::Setting::Type mSetting = SharedDatabase::Setting::INVALID;

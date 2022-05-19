@@ -208,6 +208,7 @@
     <ClInclude Include="..\..\source\rmxbase\Basics.h" />
     <ClInclude Include="..\..\source\rmxbase\BinarySerializer.h" />
     <ClInclude Include="..\..\source\rmxbase\Bitmap.h" />
+    <ClInclude Include="..\..\source\rmxbase\BitmapCodecs.h" />
     <ClInclude Include="..\..\source\rmxbase\Box2.h" />
     <ClInclude Include="..\..\source\rmxbase\Box3.h" />
     <ClInclude Include="..\..\source\rmxbase\CArray.h" />
@@ -229,7 +230,9 @@
     <ClInclude Include="..\..\source\rmxbase\jsoncpp\json_tool.h" />
     <ClInclude Include="..\..\source\rmxbase\JsonHelper.h" />
     <ClInclude Include="..\..\source\rmxbase\FileProvider.h" />
+    <ClInclude Include="..\..\source\rmxbase\Logging.h" />
     <ClInclude Include="..\..\source\rmxbase\ObjectPool.h" />
+    <ClInclude Include="..\..\source\rmxbase\OneTimeAllocPool.h" />
     <ClInclude Include="..\..\source\rmxbase\RmxDeflate.h" />
     <ClInclude Include="..\..\source\rmxbase\FileCrawler.h" />
     <ClInclude Include="..\..\source\rmxbase\FileHandle.h" />
@@ -281,6 +284,8 @@
     </ClCompile>
     <ClCompile Include="..\..\source\rmxbase\JsonHelper.cpp" />
     <ClCompile Include="..\..\source\rmxbase\FileProvider.cpp" />
+    <ClCompile Include="..\..\source\rmxbase\Logging.cpp" />
+    <ClCompile Include="..\..\source\rmxbase\OneTimeAllocPool.cpp" />
     <ClCompile Include="..\..\source\rmxbase\RmxDeflate.cpp" />
     <ClCompile Include="..\..\source\rmxbase\FileCrawler.cpp" />
     <ClCompile Include="..\..\source\rmxbase\FileHandle.cpp" />

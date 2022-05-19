@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "oxygen/rendering/parts/SpacesManager.h"
 #include "oxygen/resources/SpriteCache.h"
 #include "oxygen/helper/Transform2D.h"
 
@@ -17,11 +18,7 @@ class PatternManager;
 class SpriteManager
 {
 public:
-	enum class Space
-	{
-		SCREEN,
-		WORLD
-	};
+	using Space = SpacesManager::Space;
 
 	struct SpriteInfo
 	{
@@ -103,11 +100,12 @@ public:
 	};
 
 public:
-	SpriteManager(PatternManager& patternManager);
+	SpriteManager(PatternManager& patternManager, SpacesManager& spacesManager);
 
 	void reset();
 	void resetSprites();
 	void preFrameUpdate();
+	void postFrameUpdate();
 	void refresh();
 
 	void drawVdpSprite(const Vec2i& position, uint8 encodedSize, uint16 patternIndex, uint16 renderQueue, const Color& tintColor = Color::WHITE, const Color& addedColor = Color::TRANSPARENT);
@@ -124,21 +122,19 @@ public:
 	inline uint16 getSpriteAttributeTableBase() const  { return mSpriteAttributeTableBase; }
 	inline void setSpriteAttributeTableBase(uint16 vramAddress)  { mSpriteAttributeTableBase = vramAddress; }
 
-	const Vec2i& getWorldSpaceOffset() const  { return mWorldSpaceOffset; }
-	void setWorldSpaceOffset(const Vec2i& offset);
-
 public:
 	bool mLegacyVdpSpriteMode = false;
 
 private:
 	void checkSpriteTag(SpriteInfo& sprite);
+	void collectLegacySprites();
 
 private:
 	PatternManager& mPatternManager;
+	SpacesManager& mSpacesManager;
 
 	bool mResetSprites = false;
 	Space mLogicalSpriteSpace = Space::SCREEN;
-	Vec2i mWorldSpaceOffset;
 
 	struct SpriteSets
 	{

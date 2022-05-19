@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -11,6 +11,7 @@
 #include "sonic3air/menu/GameApp.h"
 #include "sonic3air/menu/MenuBackground.h"
 #include "sonic3air/audio/AudioOut.h"
+#include "sonic3air/Game.h"
 
 #include "oxygen/application/Configuration.h"
 #include "oxygen/application/EngineMain.h"
@@ -63,6 +64,17 @@ GameMenuBase::BaseState ModsMenu::getBaseState() const
 		case State::APPLYING_CHANGES: return BaseState::SHOW;
 		case State::FADE_TO_MENU:	  return BaseState::FADE_OUT;
 		default:					  return BaseState::INACTIVE;
+	}
+}
+
+void ModsMenu::setBaseState(BaseState baseState)
+{
+	switch (baseState)
+	{
+		case BaseState::INACTIVE: mState = State::INACTIVE;  break;
+		case BaseState::FADE_IN:  mState = State::APPEAR;  break;
+		case BaseState::SHOW:	  mState = State::SHOW;  break;
+		case BaseState::FADE_OUT: mState = State::FADE_TO_MENU;  break;
 	}
 }
 
@@ -155,10 +167,10 @@ void ModsMenu::initialize()
 				Bitmap icon16px;
 				Bitmap icon64px;
 				{
-					FileHelper::loadBitmap(icon16px, modEntry.mMod->mFullPath + L"icon-16px.png");
-					FileHelper::loadBitmap(icon64px, modEntry.mMod->mFullPath + L"icon-64px.png");
+					FileHelper::loadBitmap(icon16px, modEntry.mMod->mFullPath + L"icon-16px.png", false);
+					FileHelper::loadBitmap(icon64px, modEntry.mMod->mFullPath + L"icon-64px.png", false);
 					if (icon64px.empty())
-						FileHelper::loadBitmap(icon64px, modEntry.mMod->mFullPath + L"icon.png");
+						FileHelper::loadBitmap(icon64px, modEntry.mMod->mFullPath + L"icon.png", false);
 				}
 
 				Bitmap* sourceLarge = !icon64px.empty() ? &icon64px : !icon16px.empty() ? &icon16px : nullptr;
@@ -236,7 +248,7 @@ void ModsMenu::initialize()
 	else
 	{
 		GameMenuEntries& entries = mTabs[0].mMenuEntries;
-	#if !defined(PLATFORM_ANDROID) && !defined(PLATFORM_WEB)
+	#if !defined(PLATFORM_ANDROID) && !defined(PLATFORM_WEB) && !defined(PLATFORM_IOS)
 		entries.addEntry("Open mods " DIRECTORY_STRING, 0xfff0);
 	#endif
 		entries.addEntry("Open Manual in web browser", 0xfff1);
@@ -305,8 +317,8 @@ void ModsMenu::update(float timeElapsed)
 					const int diff = menuEntries.mSelectedEntryIndex - previousSelectedEntryIndex;
 					if (diff == -1 || diff == 1)
 					{
-						GameMenuEntries::Entry& menuEntryA = menuEntries[previousSelectedEntryIndex];
-						GameMenuEntries::Entry& menuEntryB = menuEntries[menuEntries.mSelectedEntryIndex];
+						GameMenuEntry& menuEntryA = menuEntries[previousSelectedEntryIndex];
+						GameMenuEntry& menuEntryB = menuEntries[menuEntries.mSelectedEntryIndex];
 
 						// Exchange entry with previous one, effectively moving that one
 						std::swap(menuEntryA, menuEntryB);
@@ -368,7 +380,7 @@ void ModsMenu::update(float timeElapsed)
 					const bool makeActive = (mActiveTab != 0);
 					Tab& newTab = mTabs[1 - mActiveTab];
 
-					GameMenuEntries::Entry& entry = menuEntries.selected();
+					GameMenuEntry& entry = menuEntries.selected();
 					ModEntry& modEntry = mModEntries[entry.mData];
 					modEntry.mMakeActive = makeActive;
 
@@ -417,7 +429,7 @@ void ModsMenu::update(float timeElapsed)
 	{
 		for (size_t i = 0; i < mTabs[tabIndex].mMenuEntries.size(); ++i)
 		{
-			GameMenuEntries::Entry& entry = mTabs[tabIndex].mMenuEntries[i];
+			GameMenuEntry& entry = mTabs[tabIndex].mMenuEntries[i];
 			if (entry.mAnimation.mOffset.x != 0.0f || entry.mAnimation.mOffset.y != 0.0f)
 			{
 				moveFloatTowards(entry.mAnimation.mOffset.x, 0.0f, timeElapsed * 6.0f);
@@ -778,7 +790,7 @@ bool ModsMenu::applyModChanges(bool dryRun)
 		return false;
 
 	ModManager& modManager = ModManager::instance();
-	const std::vector<GameMenuEntries::Entry>& menuEntries = mTabs[0].mMenuEntries.getEntries();
+	const std::vector<GameMenuEntry*>& menuEntries = mTabs[0].mMenuEntries.getEntries();
 
 	// Build new active mods list
 	//  -> Here again, reverse order
@@ -787,7 +799,7 @@ bool ModsMenu::applyModChanges(bool dryRun)
 
 	for (auto it = menuEntries.rbegin(); it != menuEntries.rend(); ++it)
 	{
-		const ModEntry& modEntry = mModEntries[it->mData];
+		const ModEntry& modEntry = mModEntries[(*it)->mData];
 		if (modEntry.mMakeActive)
 		{
 			activeMods.push_back(modEntry.mMod);
@@ -800,6 +812,7 @@ bool ModsMenu::applyModChanges(bool dryRun)
 	{
 		modManager.setActiveMods(activeMods);
 		modManager.saveActiveMods();
+		Game::instance().setCurrentMode(Game::Mode::UNDEFINED);		// Only used to signal MenuBackground that it needs to reload the animated background
 	}
 	return anyChange;
 }

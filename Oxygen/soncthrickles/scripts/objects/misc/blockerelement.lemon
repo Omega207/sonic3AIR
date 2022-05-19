@@ -1,6 +1,6 @@
 /*
 	This script file is part of the Sonic 3 A.I.R. script software distribution.
-	Copyright (C) 2017-2021 by Eukaryot
+	Copyright (C) 2017-2022 by Eukaryot
 
 	Published under the GNU GPLv3 open source software license, see license.txt
 	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -265,7 +265,7 @@ function void fn01f6d0()
 		A1 = 0xffffb000
 		BlockerElement.KillCharacter()
 	}
-	if (D6.u8 &= 0x08)
+	if (D6.u8 & 0x08)
 	{
 		A1 = 0xffffb04a
 		BlockerElement.KillCharacter()

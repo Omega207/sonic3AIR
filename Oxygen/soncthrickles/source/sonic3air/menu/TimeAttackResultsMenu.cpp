@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -58,7 +58,6 @@ void TimeAttackResultsMenu::initialize()
 void TimeAttackResultsMenu::deinitialize()
 {
 	GameApp::instance().enableStillImageBlur(false);
-	mBlurActive = false;
 }
 
 void TimeAttackResultsMenu::keyboard(const rmx::KeyboardEvent& ev)
@@ -115,14 +114,7 @@ void TimeAttackResultsMenu::render()
 		{
 			Application::instance().getSimulation().setSpeed(0.0f);
 			mGameStopped = true;
-
-			GameApp::instance().enableStillImageBlur(true, 1.0f);
-			mBlurActive = true;
-		}
-		else if (mBlurActive && mTime >= 1.0f)
-		{
-			GameApp::instance().enableStillImageBlur(false);
-			mBlurActive = false;
+			GameApp::instance().enableStillImageBlur(true, 0.5f);
 		}
 
 		Recti rect(roundToInt(mRect.width) - global::mTimeAttackResultsBG.getWidth(), 0, global::mTimeAttackResultsBG.getWidth(), global::mTimeAttackResultsBG.getHeight());

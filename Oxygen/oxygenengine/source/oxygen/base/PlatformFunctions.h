@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,11 +8,12 @@
 
 #pragma once
 
-#ifdef PLATFORM_MAC
+#if defined(PLATFORM_MAC) || defined(PLATFORM_IOS)
 	// Objective C already has YES and NO defined which causes the compiler to try and expand NO below.
 	#pragma push_macro("NO")
 	#undef NO
 #endif
+
 
 class PlatformFunctions
 {
@@ -31,12 +32,15 @@ public:
 	};
 
 public:
-#ifdef PLATFORM_MAC
+#if defined(PLATFORM_MAC) || defined(PLATFORM_IOS)
 	#pragma pop_macro("NO")
 	static std::wstring mExAppDataPath;
 #endif
 
 public:
+	static void preciseDelay(double milliseconds);
+	static double getTimerGranularityMilliseconds();
+
 	static void changeWorkingDirectory(const std::string& execCallPath);
 
 	static void setAppIcon(int iconResource);
@@ -54,5 +58,4 @@ public:
 	static void openURLExternal(const std::string& url);
 
 	static bool isDebuggerPresent();
-	static void debugLog(const std::string& string);
 };

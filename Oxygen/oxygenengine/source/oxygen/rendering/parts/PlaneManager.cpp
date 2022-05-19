@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -129,7 +129,7 @@ void PlaneManager::refresh()
 
 			default:
 			{
-				const uint16* src = accessPlaneContent(index);
+				const uint16* src = getPlaneContent(index);
 				memcpy(buffer, src, numPatterns * sizeof(uint16));
 				if (isDeveloperMode)
 				{
@@ -220,6 +220,11 @@ const uint16* PlaneManager::getPlaneDataInVRAM(int planeIndex) const
 	return (const uint16*)(EmulatorInterface::instance().getVRam() + getPlaneBaseVRAMAddress(planeIndex));
 }
 
+size_t PlaneManager::getPlaneSizeInVRAM(int planeIndex) const
+{
+	return (size_t)(mPlayfieldSize.x * mPlayfieldSize.y * 2);
+}
+
 uint16 PlaneManager::getPatternVRAMAddress(int planeIndex, uint16 patternIndex) const
 {
 	return getPlaneBaseVRAMAddress(planeIndex) + patternIndex * 2;
@@ -232,20 +237,15 @@ uint16 PlaneManager::getPatternAtIndex(int planeIndex, uint16 patternIndex) cons
 		if (planeIndex == PLANE_DEBUG)
 			return patternIndex;
 	}
-	return *accessPlaneContent(planeIndex, patternIndex);
+	return *getPlaneContent(planeIndex, patternIndex);
 }
 
 void PlaneManager::setPatternAtIndex(int planeIndex, uint16 patternIndex, uint16 value)
 {
-	*accessPlaneContent(planeIndex, patternIndex) = value;
+	EmulatorInterface::instance().writeVRam16(getPatternVRAMAddress(planeIndex, patternIndex), value);
 }
 
-uint16* PlaneManager::accessPlaneContent(int planeIndex, uint16 patternIndex)
-{
-	return (uint16*)(EmulatorInterface::instance().getVRam() + getPatternVRAMAddress(planeIndex, patternIndex));
-}
-
-const uint16* PlaneManager::accessPlaneContent(int planeIndex, uint16 patternIndex) const
+const uint16* PlaneManager::getPlaneContent(int planeIndex, uint16 patternIndex) const
 {
 	return (uint16*)(EmulatorInterface::instance().getVRam() + getPatternVRAMAddress(planeIndex, patternIndex));
 }

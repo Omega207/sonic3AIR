@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -208,7 +208,7 @@ bool GameRecorder::saveRecording(const std::wstring& filename) const
 	const EngineDelegateInterface::AppMetaData& appMetaData = EngineMain::getDelegate().getAppMetaData();
 	const char SIGNATURE[] = "GRC1";
 	serializer.write(SIGNATURE, 4);
-	serializer.write(appMetaData.mBuildVersion.c_str(), 10);
+	serializer.write(appMetaData.mBuildVersionString.c_str(), 10);
 
 	// Game-specific
 	std::vector<uint8> buffer;

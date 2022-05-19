@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -375,7 +375,7 @@ void BlueSpheresRendering::writeVisibleSpheresData(uint32 targetAddress, uint32 
 bool BlueSpheresRendering::loadLookupData()
 {
 	std::vector<uint8> data;
-	if (!FTX::FileSystem->readFile(L"data/cache/bluespheresrendering.bin", data))
+	if (!FTX::FileSystem->readFile(L"data/binary/bluespheresrendering.bin", data))
 		return false;
 
 	uint16 width, height;
@@ -470,8 +470,8 @@ void BlueSpheresRendering::performLookupCalculations()
 
 	struct CachedPixelData
 	{
-		bool mHitsGround;
-		float mFogAlpha;
+		bool mHitsGround = false;
+		float mFogAlpha = 0.0f;
 		Vec3f mHitPosition;
 		Vec3f mHitTangentX;
 		Vec3f mHitTangentY;
@@ -682,7 +682,7 @@ void BlueSpheresRendering::performLookupCalculations()
 			serializer.writeAs<uint32>(compressed.size());
 			serializer.write(&compressed[0], compressed.size());
 
-			FTX::FileSystem->saveFile(L"data/cache/bluespheresrendering.bin", data);
+			FTX::FileSystem->saveFile(L"data/binary/bluespheresrendering.bin", data);
 		}
 	}
 

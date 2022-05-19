@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -128,6 +128,8 @@ bool SaveStateSerializer::serializeState(VectorBinarySerializer& serializer, Sta
 		// RAM and VRAM
 		serializer.serialize(emulatorInterface.getRam(), 0x10000);
 		serializer.serialize(emulatorInterface.getVRam(), 0x10000);
+		if (serializer.isReading())
+			emulatorInterface.getVRamChangeBits().setAllBits();
 
 		// Shared memory
 		if (formatVersion >= 3)
@@ -281,6 +283,8 @@ bool SaveStateSerializer::readGensxState(VectorBinarySerializer& serializer)
 
 		// Load VRAM
 		serializer.serialize(emulatorInterface.getVRam(), 0x10000);
+		if (serializer.isReading())
+			emulatorInterface.getVRamChangeBits().setAllBits();
 
 		// Load CRAM
 		{

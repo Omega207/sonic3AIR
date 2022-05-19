@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -9,7 +9,7 @@
 #pragma once
 
 #include "oxygen/application/Configuration.h"
-#include "oxygen/helper/Utils.h"		// For HighResolutionTimer
+#include "oxygen/helper/HighResolutionTimer.h"
 
 class AudioPlayer;
 class BackdropView;
@@ -52,6 +52,8 @@ public:
 	void setWindowMode(WindowMode windowMode, bool force = false);
 	void toggleFullscreen();
 
+	void enablePauseOnFocusLoss();
+
 	bool hasKeyboard() const;
 	bool hasVirtualGamepad() const;
 
@@ -59,18 +61,21 @@ private:
 	int updateWindowDisplayIndex();
 	void setUnscaledWindow();
 	bool updateLoading();
+	void setPausedByFocusLoss(bool enable);
 
 private:
 	WindowMode mWindowMode = WindowMode::WINDOWED;
-	float mNextRefreshTicks = 0;
+	HighResolutionTimer mApplicationTimer;
+	double mNextRefreshTime = 0.0;		// In milliseconds since application start
 	bool mIsVeryFirstFrameForLogging = true;
+	bool mPausedByFocusLoss = false;
 
 	// Simulation
 	Simulation* mSimulation = nullptr;
 
 	// Game
 	GameLoader* mGameLoader = nullptr;
-	GuiBase*  mGameApp = nullptr;
+	GuiBase* mGameApp = nullptr;
 	GameView* mGameView = nullptr;
 
 	// GUI
@@ -85,7 +90,7 @@ private:
 	SaveStateMenu* mSaveStateMenu = nullptr;
 	DebugSidePanel* mDebugSidePanel = nullptr;
 	ProfilingView* mProfilingView = nullptr;
-
+	
 	// Input
 	float mMouseHideTimer = 0.0f;
 };

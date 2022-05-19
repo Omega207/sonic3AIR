@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -26,8 +26,10 @@ namespace
 	// General recording file format version
 	//  - 0x0103 = First released build
 	//  - 0x0104 = Change from characters to categories (introduction of "Sonic - Max Control")
+	//  - 0x0105 = Support for extended animation sprites
+	//  - 0x0106 = Serialization of settings
 	const uint16 EARLIEST_FORMAT_VERSION = 0x0103;
-	const uint16 CURRENT_FORMAT_VERSION	 = 0x0105;
+	const uint16 CURRENT_FORMAT_VERSION	 = 0x0106;
 
 	// Game build, so we can distinguish between recordings from older builds
 	const uint32 GAME_VERSION			 = BUILD_NUMBER;
@@ -142,6 +144,17 @@ void PlayerRecorder::initRecording(const std::wstring& filename, uint16 zoneAndA
 	mCurrentRecording.mZoneAndAct = zoneAndAct;
 	mCurrentRecording.mCategory = category;
 	mCurrentRecording.mFrames.clear();
+
+	// Save settings
+	const auto& settingsMap = SharedDatabase::getSettings();
+	for (const auto& pair : settingsMap)
+	{
+		const SharedDatabase::Setting& setting = pair.second;
+		if (setting.mSerializationType != SharedDatabase::Setting::SerializationType::NONE && setting.mValue != setting.mDefaultValue)
+		{
+			mCurrentRecording.mSettings.emplace_back(pair.first, setting.mValue);
+		}
+	}
 }
 
 void PlayerRecorder::initPlayback(const std::wstring& filename)
@@ -155,6 +168,7 @@ void PlayerRecorder::initPlayback(const std::wstring& filename)
 			Recording& recording = vectorAdd(mCurrentPlaybacks);
 			recording.mFilename = filename;
 			recording.mVisible = ((int)mCurrentPlaybacks.size() <= mMaxGhosts);
+			recording.mIndex = mCurrentPlaybacks.size() - 1;
 
 			bool success = false;
 			VectorBinarySerializer serializer(true, buffer);
@@ -356,7 +370,7 @@ void PlayerRecorder::updatePlayback(const Recording& recording, uint16 frameNumb
 
 	const uint8 character = (recording.mCategory >> 4) - 1;
 	const Vec2i velocity = (frameNumber > 0) ? (frame.mPosition - recording.mFrames[frameNumber-1].mPosition) : Vec2i(0, 1);
-	s3air::drawPlayerSprite(EmulatorInterface::instance(), character, Vec2i(px, py), velocity, frame.mSprite, frame.mFlags, frame.mRotation, Color(1.5f, 1.5f, 1.5f, 0.65f), &frameNumber);
+	s3air::drawPlayerSprite(EmulatorInterface::instance(), character, Vec2i(px, py), velocity, frame.mSprite, frame.mFlags, frame.mRotation, Color(1.5f, 1.5f, 1.5f, 0.65f), &frameNumber, true, 0x99990000 + recording.mIndex * 0x10);
 }
 
 bool PlayerRecorder::serializeRecording(VectorBinarySerializer& serializer, Recording& recording)
@@ -382,12 +396,27 @@ bool PlayerRecorder::serializeRecording(VectorBinarySerializer& serializer, Reco
 	// Game version
 	serializer & recording.mGameVersion;
 
+	// Settings
+	if (formatVersion >= 0x0106)
+	{
+		serializer.serializeArraySize(recording.mSettings);
+		for (auto& pair : recording.mSettings)
+		{
+			serializer.serialize(pair.first);
+			serializer.serialize(pair.second);
+		}
+	}
+	else
+	{
+		uint32 dummy = 0;
+		serializer & dummy;
+	}
+
 	// Meta data
-	serializer & recording.mSettings;
 	serializer & recording.mZoneAndAct;
 	serializer & recording.mCategory;
 
-	if (formatVersion <= 0x0103)
+	if (formatVersion < 0x0104)
 	{
 		// Translate characters to category
 		recording.mCategory = (recording.mCategory + 1) << 4;
@@ -411,7 +440,7 @@ bool PlayerRecorder::serializeRecording(VectorBinarySerializer& serializer, Reco
 		serializer & frame.mInput;
 		serializer.serializeAs<uint32>(frame.mPosition.x);
 		serializer.serializeAs<uint32>(frame.mPosition.y);
-		if (formatVersion <= 0x0104)
+		if (formatVersion < 0x0105)
 		{
 			serializer.serializeAs<uint8>(frame.mSprite);
 		}

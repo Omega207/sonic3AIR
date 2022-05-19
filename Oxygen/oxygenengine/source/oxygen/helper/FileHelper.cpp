@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -8,7 +8,7 @@
 
 #include "oxygen/pch.h"
 #include "oxygen/helper/FileHelper.h"
-#include "oxygen/helper/Log.h"
+#include "oxygen/helper/Logging.h"
 #include "oxygen/application/Configuration.h"
 #include "oxygen/application/EngineMain.h"
 #include "oxygen/drawing/DrawerTexture.h"
@@ -89,35 +89,52 @@ namespace
 }
 
 
-bool FileHelper::loadPaletteBitmap(PaletteBitmap& bitmap, const std::wstring& filename)
+bool FileHelper::loadPaletteBitmap(PaletteBitmap& bitmap, const std::wstring& filename, bool showError)
 {
 	std::vector<uint8> content;
 	if (!FTX::FileSystem->readFile(filename, content))
+	{
+		RMX_CHECK(!showError, "Failed to load image file '" << *WString(filename).toString() << "': File not found", );
 		return false;
+	}
 
-	return bitmap.loadBMP(content);
+	if (!bitmap.loadBMP(content))
+	{
+		RMX_CHECK(!showError, "Failed to load image file '" << *WString(filename).toString() << "': Format not supported", );
+		return false;
+	}
+	return true;
 }
 
-bool FileHelper::loadBitmap(Bitmap& bitmap, const std::wstring& filename)
+bool FileHelper::loadBitmap(Bitmap& bitmap, const std::wstring& filename, bool showError)
 {
 	std::vector<uint8> content;
 	if (!FTX::FileSystem->readFile(filename, content))
+	{
+		RMX_CHECK(!showError, "Failed to load image file '" << *WString(filename).toString() << "': File not found", );
 		return false;
+	}
 
 	// Get file type
 	String format;
 	WString fname = filename;
-	int pos = fname.findChar(L'.', fname.length()-1, -1);
+	const int pos = fname.findChar(L'.', fname.length()-1, -1);
 	if (pos > 0)
 	{
 		format = fname.getSubString(pos+1, -1).toString();
 	}
 
 	MemInputStream stream(&content[0], (int)content.size());
-	return bitmap.decode(stream, *format);
+	Bitmap::LoadResult loadResult;
+	if (!bitmap.decode(stream, loadResult, *format))
+	{
+		RMX_CHECK(!showError, "Failed to load image file '" << *WString(filename).toString() << "': Format not supported", );
+		return false;
+	}
+	return true;
 }
 
-bool FileHelper::loadTexture(DrawerTexture& texture, const std::wstring& filename)
+bool FileHelper::loadTexture(DrawerTexture& texture, const std::wstring& filename, bool showError)
 {
 	if (!texture.isValid())
 	{
@@ -125,7 +142,7 @@ bool FileHelper::loadTexture(DrawerTexture& texture, const std::wstring& filenam
 	}
 
 	Bitmap& bitmap = texture.accessBitmap();
-	if (!loadBitmap(bitmap, filename))
+	if (!loadBitmap(bitmap, filename, showError))
 		return false;
 
 	texture.bitmapUpdated();
@@ -140,12 +157,12 @@ bool FileHelper::loadShader(Shader& shader, const std::wstring& filename, const 
 
 	if (shader.load(content, techname, additionalDefines))
 	{
-		LOG_INFO("Loaded shader '" << WString(filename).toStdString() << "'");
+		RMX_LOG_INFO("Loaded shader '" << WString(filename).toStdString() << "'");
 	}
 	else
 	{
-		LOG_INFO("Error(s) loading shader '" << WString(filename).toStdString() << "':");
-		LOG_INFO(shader.getCompileLog().toStdString());
+		RMX_LOG_INFO("Error(s) loading shader '" << WString(filename).toStdString() << "':");
+		RMX_LOG_INFO(shader.getCompileLog().toStdString());
 	}
 	return true;
 }

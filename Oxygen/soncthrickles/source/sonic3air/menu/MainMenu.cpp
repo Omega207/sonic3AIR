@@ -1,6 +1,6 @@
 /*
 *	Part of the Oxygen Engine / Sonic 3 A.I.R. software distribution.
-*	Copyright (C) 2017-2021 by Eukaryot
+*	Copyright (C) 2017-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -79,6 +79,17 @@ GameMenuBase::BaseState MainMenu::getBaseState() const
 	}
 }
 
+void MainMenu::setBaseState(BaseState baseState)
+{
+	switch (baseState)
+	{
+		case BaseState::INACTIVE: mState = State::INACTIVE;  break;
+		case BaseState::FADE_IN:  mState = State::APPEAR;  break;
+		case BaseState::SHOW:	  mState = State::SHOW;  break;
+		case BaseState::FADE_OUT: mState = State::FADE_TO_EXIT;  break;
+	}
+}
+
 void MainMenu::onFadeIn()
 {
 	mState = State::APPEAR;
@@ -126,10 +137,6 @@ bool MainMenu::canBeRemoved()
 
 void MainMenu::initialize()
 {
-#if defined(ENDUSER)
-	const bool devMode = EngineMain::instance().getDelegate().useDeveloperFeatures();
-	mMenuEntries.getEntryByData(mainmenu::TIME_ATTACK)->setEnabled(!devMode);
-#endif
 }
 
 void MainMenu::deinitialize()
@@ -227,6 +234,7 @@ void MainMenu::update(float timeElapsed)
 			switch (mState)
 			{
 				case State::FADE_TO_TITLESCREEN:
+					mMenuBackground->setGameStartedMenu();
 					GameApp::instance().openTitleScreen();
 					break;
 
@@ -264,7 +272,7 @@ void MainMenu::render()
 		const int px = (isMainEntry ? 218 : 232) + roundToInt(saturate(1.0f - mVisibility - lineOffset * 0.1f) * 200.0f - mMenuEntries[line].mAnimation.mVisibility * 10.0f);
 		const int py = positionY[line];
 		const bool isSelected = ((int)line == mMenuEntries.mSelectedEntryIndex);
-		const bool isSelectable = entry.isEnabled();
+		const bool isSelectable = entry.isFullyInteractable();
 		const Color colorBG = isSelectable ? (isSelected ? Color(1.0f, 1.0f, 0.5f, mVisibility) : Color(0.5f, 0.75f, 1.0f, mVisibility)) : Color(0.4f, 0.4f, 0.4f, mVisibility * 0.25f);
 		const Color color   = isSelectable ? (isSelected ? Color(1.0f, 1.0f, 0.0f, mVisibility) : Color(1.0f, 1.0f, 1.0f, mVisibility)) : Color(0.4f, 0.4f, 0.4f, mVisibility * 0.75f);
 
@@ -328,6 +336,7 @@ void MainMenu::startNormalGame()
 	// Init simulation
 	Game::instance().startIntoDataSelect();
 	GameApp::instance().onStartGame();
+	mMenuBackground->setGameStartedMenu();
 }
 
 void MainMenu::openActSelectMenu()

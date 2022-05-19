@@ -1,6 +1,6 @@
 /*
 *	rmx Library
-*	Copyright (C) 2008-2021 by Eukaryot
+*	Copyright (C) 2008-2022 by Eukaryot
 *
 *	Published under the GNU GPLv3 open source software license, see license.txt
 *	or https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -21,7 +21,12 @@
 	#define USE_UTF8_PATHS		// Linux supports UTF-8 file names instead of wchar_t
 
 #elif __APPLE__
+	#include <TargetConditionals.h>
+	#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
+	#define PLATFORM_IOS
+	#else
 	#define PLATFORM_MAC
+	#endif
 	#define USE_UTF8_PATHS
 
 #elif __ANDROID__
