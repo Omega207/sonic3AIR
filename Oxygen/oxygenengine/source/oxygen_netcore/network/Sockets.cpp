@@ -135,7 +135,7 @@ void SocketAddress::assureSockAddr() const
 	if (!mHasSockAddr)
 	{
 		memset(&mSockAddr, 0, sizeof(mSockAddr));
-		bool success = false;
+		/* bool success = false;
 		{
 			// IPv6
 			sockaddr_in6& addr = *reinterpret_cast<sockaddr_in6*>(&mSockAddr);
@@ -143,7 +143,7 @@ void SocketAddress::assureSockAddr() const
 			addr.sin6_port = htons(mPort);
 			success = (1 == inet_pton(addr.sin6_family, mIP.c_str(), &addr.sin6_addr));
 		}
-		if (!success)
+		if (!success) */
 		{
 			// IPv4
 			sockaddr_in& addr = *reinterpret_cast<sockaddr_in*>(&mSockAddr);
