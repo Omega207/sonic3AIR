@@ -54,47 +54,15 @@ bin/
 /framework/external/sdl/SDL2/VisualC/tests/loopwave/sample.wav
 /framework/external/sdl/SDL2/VisualC/tests/testoverlay2/moose.dat
 
-# Ogg/Vorbis Visual Studio generated files
-/framework/external/ogg-vorbis/libvorbis/out
-/framework/external/ogg-vorbis/libvorbis/win32/VS2010/vorbisdec/Win32
-/framework/external/ogg-vorbis/libvorbis/win32/VS2010/vorbisdec/x64
-/framework/external/ogg-vorbis/libvorbis/win32/VS2010/vorbisenc/Win32
-/framework/external/ogg-vorbis/libvorbis/win32/VS2010/vorbisenc/x64
-
-# build includes
-/framework/include/
-
-# librmx
-/librmx/build/_vstudio/rmxTest_x86/rmx_test.vcxproj.FileListAbsolute.txt
-/librmx/build/_vstudio/rmxTest_x86/rmxTest.iobj
-/librmx/build/_vstudio/rmxTest_x86/rmxTest.ipdb
-/librmx/build/_vstudio/rmxTest_x86d/rmx_test.vcxproj.FileListAbsolute.txt
-*.recipe
-*.exp
-
-
 # Oxygen
 /Oxygen/oxygenengine/OxygenApp
-/Oxygen/oxygenengine/build/_vstudio/tmp
-/Oxygen/oxygenengine/crashdump.dmp
-/Oxygen/oxygenengine/palette_dump.bmp
-/Oxygen/oxygenengine/screenshot.bmp
 /Oxygen/soncthrickles/Sonic3AIR
 /Oxygen/soncthrickles/source/_cmake/build/*
 /Oxygen/soncthrickles/___internal/analysis/*
-/Oxygen/soncthrickles/build/_vstudio/tmp
-/Oxygen/soncthrickles/build/_vstudio/lib/Release-Enduser_x86
-/Oxygen/soncthrickles/build/_vstudio/lib/Release-Enduser_x64
-/Oxygen/soncthrickles/_master_image_template/data
 /Oxygen/soncthrickles/saves/scripts.bin
 /Oxygen/soncthrickles/saves/rec
 /Oxygen/soncthrickles/enginedata.bin
 /Oxygen/soncthrickles/gamedata.bin
-/Oxygen/soncthrickles/crashdump.dmp
-/Oxygen/soncthrickles/palette_dump.bmp
-/Oxygen/soncthrickles/screenshot.bmp
-/Oxygen/lemonscript/build/_vstudio/tmp
-/Oxygen/_MASTER/
 
 # Xcode
 /Oxygen/soncthrickles/build/_xcode/sonic3air.xcodeproj/project.xcworkspace/xcuserdata/*
@@ -119,3 +87,10 @@ mac_dist
 !/Oxygen/soncthrickles/source/external/discord_game_sdk/lib/*/*.lib
 !/Oxygen/soncthrickles/source/external/discord_game_sdk/lib/*/*.dylib
 !/Oxygen/soncthrickles/source/external/discord_game_sdk/lib/*/*.so
+framework/external/ogg-vorbis/libogg/build
+framework/external/ogg-vorbis/libogg/xcode/libogg.xcodeproj/project.xcworkspace/xcuserdata
+framework/external/ogg-vorbis/libogg/xcode/libogg.xcodeproj/xcuserdata
+framework/external/sdl/SDL2/Xcode/SDL/SDL.xcodeproj/xcuserdata
+framework/external/ogg-vorbis/libvorbis/xcode/build
+framework/external/ogg-vorbis/libvorbis/xcode/vorbis.xcodeproj/project.xcworkspace/xcuserdata
+framework/external/ogg-vorbis/libvorbis/xcode/vorbis.xcodeproj/xcuserdata
