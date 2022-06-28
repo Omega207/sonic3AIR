@@ -56,10 +56,9 @@ For information on how to build for different platforms, find the readme files i
 * Switch:  ["_make"](Oxygen/soncthrickles/build/_make)
 
 
-## Want to contribute?
+## What's the repo fork for?
 
-Here's the bad news: This repository isn't meant for direct distribution. If you have your own changes that you want to share with the world, create a **fork** of this repo, instead of making pull requests. I'd very much appreciate that as I really want to avoid having too much overhead with managing / reviewing code changes made by others. I'd rather use the time to continue with implementing my own ideas into the project.
+I'm attempting to push commits from the original repo and vinegar97 for a mix-and-match result. While I'm unfamiliar with most of the source code here, but hopefully the result is at least readable. If you want to contribute or help me out, fork this repo, make some changes, and send the data back to me.
+<br />Thanks go to all the original repo owners, especially Euka, the original owner and commiter for all my updates on this fork.
 
-Plus there's a second reason, and that's an important one for me as well: It's about code ownership and software licenses. It's much easier to use the librmx, lemonscript and Oxygen Engine code elsewhere under a different license than GPL if I don't have to ask a larger group of contributors whether they are okay with it. Because there are some plans for possible future projects using these codes as a foundation, maybe even commercial ones where GPL could make things complicated.
-
--- Euka
+--Omega
